@@ -1,0 +1,6 @@
+{
+  "wordLibraryPath": "wordlib.json",
+  "cooldownSeconds": 30,
+  "logRetentionDays": 30,
+  "debugMonitorTargets": ""
+}

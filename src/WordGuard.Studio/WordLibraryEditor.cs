@@ -70,6 +70,54 @@ public sealed class WordLibraryEditor
         return true;
     }
 
+    /// <summary>所有分类及其词条数量（按名称升序），空分类名记为"未分类"。</summary>
+    public IReadOnlyList<(string Name, int Count)> GetCategories()
+    {
+        return _library.Words
+            .GroupBy(w => w.Category is { Length: > 0 } ? w.Category : "未分类")
+            .Select(g => (g.Key, g.Count()))
+            .OrderBy(x => x.Key == "未分类" ? "鿿" : x.Key, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>重命名分类（作用于所有该分类词条）。新名为空或与旧名相同则忽略。返回受影响条数。</summary>
+    public int RenameCategory(string oldName, string newName)
+    {
+        newName = (newName ?? "").Trim();
+        oldName = oldName ?? "";
+        if (newName.Length == 0 || oldName == newName) return 0;
+        var n = 0;
+        for (var i = 0; i < _library.Words.Count; i++)
+        {
+            var w = _library.Words[i];
+            if ((w.Category ?? "") == oldName)
+            {
+                _library.Words[i] = w with { Category = newName };
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /// <summary>删除分类：把该分类词条改挂到 <paramref name="reassignTo"/>（空=归入"未分类"）。返回受影响条数。</summary>
+    public int DeleteCategory(string name, string? reassignTo)
+    {
+        name = name ?? "";
+        reassignTo = string.IsNullOrWhiteSpace(reassignTo) ? "" : reassignTo.Trim();
+        if (name == reassignTo) return 0;
+        var n = 0;
+        for (var i = 0; i < _library.Words.Count; i++)
+        {
+            var w = _library.Words[i];
+            if ((w.Category ?? "") == name)
+            {
+                _library.Words[i] = w with { Category = reassignTo };
+                n++;
+            }
+        }
+        return n;
+    }
+
     /// <summary>批量设置全部词条的启用/停用；返回实际发生变化的条数（已符合目标态的不计）。</summary>
     public int SetEnabledForAll(bool enabled)
     {

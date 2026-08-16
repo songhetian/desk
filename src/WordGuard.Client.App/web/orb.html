@@ -41,10 +41,10 @@
     }
   });
 
-  // 鼠标事件上报宿主（拖拽由 C# 处理窗体移动）
-  let dragging = false, sx = 0, sy = 0;
-  orb.addEventListener('mousedown', e => { if (e.button === 0) { dragging = true; sx = e.screenX; sy = e.screenY; window.chrome.webview.postMessage(JSON.stringify({type:'dragStart'})); e.preventDefault(); } });
-  document.addEventListener('mousemove', e => { if (dragging) window.chrome.webview.postMessage(JSON.stringify({type:'dragMove', dx: e.screenX - sx, dy: e.screenY - sy})); });
+  // 鼠标事件上报宿主（拖拽由 C# 用物理像素处理窗体移动，避免 DPI 缩放下错位）
+  let dragging = false;
+  orb.addEventListener('mousedown', e => { if (e.button === 0) { dragging = true; window.chrome.webview.postMessage(JSON.stringify({type:'dragStart'})); e.preventDefault(); } });
+  document.addEventListener('mousemove', e => { if (dragging) window.chrome.webview.postMessage(JSON.stringify({type:'dragMove'})); });
   document.addEventListener('mouseup', e => { if (dragging) { dragging = false; window.chrome.webview.postMessage(JSON.stringify({type:'dragEnd'})); } });
   orb.addEventListener('dblclick', e => { if (e.button === 0) window.chrome.webview.postMessage(JSON.stringify({type:'doubleClick'})); });
   orb.addEventListener('contextmenu', e => { e.preventDefault(); window.chrome.webview.postMessage(JSON.stringify({type:'rightClick'})); });

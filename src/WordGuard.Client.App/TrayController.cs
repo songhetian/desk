@@ -11,15 +11,18 @@ namespace WordGuard.Client.App;
 public sealed class TrayController : IDisposable
 {
     private readonly NotifyIcon _icon;
-    private readonly Bitmap _bitmap;
+    private readonly Icon? _appIcon;
+    private readonly Bitmap? _fallbackBitmap;
 
     public TrayController(Action showSettings, Action showLog, Action simulate, Action exit)
     {
-        _bitmap = MakeBitmap();
+        // 优先用 exe 自身图标（ApplicationIcon 已编译进程序），提取失败才回退到 GDI 手绘盾牌
+        _appIcon = TryLoadAppIcon();
+        _fallbackBitmap = _appIcon is null ? MakeBitmap() : null;
         _icon = new NotifyIcon
         {
             Visible = true,
-            Icon = Icon.FromHandle(_bitmap.GetHicon()),
+            Icon = _appIcon ?? Icon.FromHandle(_fallbackBitmap!.GetHicon()),
             Text = "WordGuard 客服违禁词监控",
         };
 
@@ -37,6 +40,18 @@ public sealed class TrayController : IDisposable
 
         _icon.ContextMenuStrip = menu;
         _icon.DoubleClick += (_, _) => showSettings();
+    }
+
+    private static Icon? TryLoadAppIcon()
+    {
+        try
+        {
+            var exe = System.Windows.Forms.Application.ExecutablePath;
+            if (!string.IsNullOrEmpty(exe) && System.IO.File.Exists(exe))
+                return Icon.ExtractAssociatedIcon(exe);
+        }
+        catch { /* 提取失败走 GDI 回退 */ }
+        return null;
     }
 
     private static Bitmap MakeBitmap()
@@ -74,6 +89,14 @@ public sealed class TrayController : IDisposable
         if (_icon.ContextMenuStrip is { } m) m.Dispose();
         _icon.Visible = false;
         _icon.Dispose();
-        _bitmap.Dispose();
+        _appIcon?.Dispose();
+        _fallbackBitmap?.Dispose();
+    }
+
+    /// <summary>更新托盘悬浮提示（如「监控中 | 目标: [...]」），让后台运行状态一眼可见。</summary>
+    public void SetStatus(string status)
+    {
+        if (!string.IsNullOrEmpty(status))
+            _icon.Text = status.Length > 63 ? status[..63] : status;
     }
 }

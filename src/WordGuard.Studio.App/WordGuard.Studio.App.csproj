@@ -10,6 +10,7 @@
     <RootNamespace>WordGuard.Studio.App</RootNamespace>
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ApplicationIcon>WordGuard.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

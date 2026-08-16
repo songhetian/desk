@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
 using WordGuard.Core;
@@ -41,6 +42,8 @@ public sealed class MainForm : HtmlWindow
             case "deleteWord": DeleteWord(doc); break;
             case "saveWord": SaveWord(doc); break;
             case "saveDeploy": SaveDeploy(doc); break;
+            case "renameCategory": RenameCategory(doc); break;
+            case "deleteCategory": DeleteCategory(doc); break;
             case "export": Export(); break;
         }
         doc.Dispose();
@@ -59,6 +62,7 @@ public sealed class MainForm : HtmlWindow
                 Severity = Sev(w.Severity),
                 w.Enabled,
             }),
+            categories = CategoryJson(),
             deploy = DeployJson(),
             libPath = _path,
         }));
@@ -75,8 +79,12 @@ public sealed class MainForm : HtmlWindow
             Severity = Sev(w.Severity),
             w.Enabled,
         }),
+        categories = CategoryJson(),
         deploy = DeployJson(),
     }));
+
+    private object CategoryJson() => _editor.GetCategories()
+        .Select(c => new { name = c.Name, count = c.Count });
 
     private object DeployJson() => new
     {
@@ -94,6 +102,7 @@ public sealed class MainForm : HtmlWindow
         var id = doc.RootElement.GetProperty("id").GetGuid();
         var enabled = doc.RootElement.GetProperty("enabled").GetBoolean();
         _editor.SetEnabled(id, enabled);
+        Persist();
         PushUpdated();
     }
 
@@ -101,13 +110,14 @@ public sealed class MainForm : HtmlWindow
     {
         var id = doc.RootElement.GetProperty("id").GetGuid();
         _editor.Remove(id);
+        Persist();
         PushUpdated();
     }
 
     private void SaveWord(JsonDocument doc)
     {
         var root = doc.RootElement;
-        var text = root.GetProperty("text").GetString() ?? "";
+        var text = (root.GetProperty("text").GetString() ?? "").Trim();
         var category = root.GetProperty("category").GetString() ?? "";
         var sev = root.GetProperty("severity").GetString() switch
         {
@@ -117,18 +127,38 @@ public sealed class MainForm : HtmlWindow
         };
         var enabled = root.GetProperty("enabled").GetBoolean();
 
+        Guid? id = null;
         if (root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String &&
-            Guid.TryParse(idEl.GetString(), out var id) && id != Guid.Empty)
+            Guid.TryParse(idEl.GetString(), out var parsed) && parsed != Guid.Empty)
+            id = parsed;
+
+        // 校验：空文本 / 重复（编辑时排除自身）—— 结果通过 toast 反馈，HTML 不再依赖原生 alert
+        if (text.Length == 0)
         {
-            var existing = _lib.Words.FirstOrDefault(w => w.Id == id);
-            if (existing is not null)
-                _editor.Update(id, existing with { Text = text, Category = category, Severity = sev, Enabled = enabled });
+            PostToJs(Json(new { type = "toast", text = "违禁词文本不能为空", ok = false }));
+            return;
+        }
+        var dup = _lib.Words.Any(w =>
+            w.Text.Trim().Equals(text, StringComparison.OrdinalIgnoreCase) && w.Id != id);
+        if (dup)
+        {
+            PostToJs(Json(new { type = "toast", text = $"「{text}」已存在于词库，请勿重复添加", ok = false }));
+            return;
+        }
+
+        if (id is { } existingId)
+        {
+            var existing = _lib.Words.FirstOrDefault(w => w.Id == existingId);
+            if (existing is null) return;
+            _editor.Update(existingId, existing with { Text = text, Category = category, Severity = sev, Enabled = enabled });
         }
         else
         {
             _editor.Add(new WordEntry { Text = text, Category = category, Severity = sev, Enabled = enabled });
         }
+        Persist();
         PushUpdated();
+        PostToJs(Json(new { type = "toast", text = id is null ? "已新增违禁词并保存 ✓" : "已更新词条并保存 ✓", ok = true }));
     }
 
     private void SaveDeploy(JsonDocument doc)
@@ -150,21 +180,71 @@ public sealed class MainForm : HtmlWindow
         m.AlertHighlight = root.GetProperty("alertHighlight").GetBoolean();
         m.CooldownSeconds = root.GetProperty("cooldownSeconds").GetInt32();
         m.LogRetentionDays = root.GetProperty("logRetentionDays").GetInt32();
+        Persist();
         PushUpdated();
+        PostToJs(Json(new { type = "toast", text = "默认策略已保存并写入词库 ✓", ok = true }));
     }
 
+    private void RenameCategory(JsonDocument doc)
+    {
+        var root = doc.RootElement;
+        var oldName = root.GetProperty("old").GetString() ?? "";
+        var newName = root.GetProperty("new").GetString() ?? "";
+        var n = _editor.RenameCategory(oldName, newName);
+        Persist();
+        PushUpdated();
+        PostToJs(Json(new { type = "toast", text = n > 0 ? $"已重命名分类「{oldName}」→「{newName}」（{n} 词）" : "分类无变化", ok = n > 0 }));
+    }
+
+    private void DeleteCategory(JsonDocument doc)
+    {
+        var root = doc.RootElement;
+        var name = root.GetProperty("name").GetString() ?? "";
+        var reassignTo = root.TryGetProperty("reassignTo", out var r) && r.ValueKind == JsonValueKind.String ? r.GetString() : "";
+        var n = _editor.DeleteCategory(name, reassignTo);
+        Persist();
+        PushUpdated();
+        PostToJs(Json(new { type = "toast", text = n > 0 ? $"已删除分类「{name}」（{n} 词已迁移）" : "分类无变化", ok = n > 0 }));
+    }
+
+    /// <summary>
+    /// 导出词库：弹「另存为」让管理员选择目标路径（修复旧版"导出=把文件写回自己"无效问题）。
+    /// 导出即写盘并刷新 updatedAt，客户端据此判断下发是否生效。
+    /// </summary>
     private void Export()
     {
         try
         {
             var json = _editor.Export();
-            System.IO.File.WriteAllText(_path, json);
-            PostToJs(Json(new { type = "toast", text = $"已导出 {_lib.Words.Count} 词 + {_lib.Metadata.Targets.Count} 目标 ✓", ok = true }));
+            using var dlg = new SaveFileDialog
+            {
+                Title = "导出词库（供客户端下发）",
+                Filter = "词库 JSON (*.json)|*.json",
+                FileName = $"wordlib-{DateTime.Now:yyyyMMdd-HHmm}.json",
+                DefaultExt = "json",
+                AddExtension = true,
+            };
+            if (dlg.ShowDialog(this) != DialogResult.OK)
+                return; // 用户取消导出
+            File.WriteAllText(dlg.FileName, json);
+            PostToJs(Json(new
+            {
+                type = "toast",
+                text = $"已导出 {_lib.Words.Count} 词 + {_lib.Metadata.Targets.Count} 目标 → {dlg.FileName}",
+                ok = true,
+            }));
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             PostToJs(Json(new { type = "toast", text = $"导出失败：{ex.Message}", ok = false }));
         }
+    }
+
+    /// <summary>把内存词库（词条 + 默认策略 metadata）写回词库文件。旧版缺失此步，所有编辑"无反应"（重启即丢）。</summary>
+    private void Persist()
+    {
+        _lib.UpdatedAt = DateTime.UtcNow;
+        File.WriteAllText(_path, _lib.ToJson());
     }
 
     private static string Sev(Severity s) => s switch { Severity.High => "high", Severity.Medium => "medium", _ => "low" };

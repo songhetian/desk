@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root{
+    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
+    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
+    --bg:#EEF2F7; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
+    --hi:#DC2626; --hi-l:#FEF2F2; --mid:#D97706; --mid-l:#FFFBEB;
+    --lo:#2563EB; --lo-l:#EFF4FF; --ok:#059669;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 24px 60px rgba(15,23,42,.28);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:transparent;overflow:hidden;
+    font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;font-size:13.5px;
+    color:var(--ink);-webkit-font-smoothing:antialiased}
+  body{padding:8px}
+  .pop{width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;animation:pop .2s ease}
+  @keyframes pop{from{transform:scale(.96) translateY(6px);opacity:0}to{transform:none;opacity:1}}
+  @media (prefers-reduced-motion: reduce){.pop{animation:none}}
+
+  .head{display:flex;gap:14px;padding:18px 20px 12px;align-items:flex-start}
+  .ic-badge{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
+  .ic-badge.hi{background:var(--hi-l);color:var(--hi)}
+  .ic-badge.mid{background:var(--mid-l);color:var(--mid)}
+  .ic-badge.lo{background:var(--lo-l);color:var(--lo)}
+  .ttl{font-size:16px;font-weight:600}
+  .sub{color:var(--mut);font-size:12.5px;margin-top:2px}
+  .count-pill{margin-left:8px;font-size:11px;font-weight:700;color:var(--hi);background:var(--hi-l);
+    padding:2px 8px;border-radius:20px;vertical-align:2px}
+
+  .body{padding:0 20px 6px}
+  .wbox{background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+  .wbox .lab{font-size:12px;color:var(--mut)}
+  .wbox .val{font-size:18px;font-weight:700;margin-top:2px;word-break:break-all}
+  .kv{display:flex;gap:10px;font-size:13px}
+  .kv>div{flex:1;min-width:0}
+  .kv .lab{color:var(--mut);font-size:12px}
+  .kv b{display:block;margin-top:1px;font-weight:600;word-break:break-all}
+
+  .content{margin:12px 0 2px;border:1px solid var(--line);border-radius:10px;background:#F8FAFC;padding:0;overflow:hidden}
+  .content summary{cursor:pointer;padding:9px 13px;font-size:12.5px;color:var(--sub);font-weight:600;user-select:none;list-style:none}
+  .content summary::-webkit-details-marker{display:none}
+  .content summary::before{content:"▸ ";color:var(--mut)}
+  .content[open] summary::before{content:"▾ "}
+  .content .ct{padding:0 13px 11px;font-size:12.5px;line-height:1.65;max-height:110px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:var(--ink)}
+  mark{background:var(--hi-l);color:var(--hi);border-radius:3px;padding:0 2px;font-weight:700}
+
+  .foot{padding:13px 20px 16px;display:flex;gap:9px;justify-content:flex-end;border-top:1px solid var(--line);background:#F8FAFC;margin-top:14px}
+  .btn{border:none;background:var(--blue);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{background:var(--blue-d)}
+  .btn.sec{background:#fff;color:var(--sub);border:1px solid var(--line-d)}
+  .btn.sec:hover{border-color:var(--blue);color:var(--blue);background:#fff}
+</style>
+</head>
+<body>
+<div class="pop">
+  <div class="head">
+    <div class="ic-badge hi" id="badge">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+    </div>
+    <div>
+      <div class="ttl" id="ttl">违禁词命中提醒</div>
+      <div class="sub" id="subLine">检测到禁止使用词汇，请立即纠正对话内容</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="wbox">
+      <div class="lab">命中词汇</div>
+      <div class="val" id="word">—</div>
+    </div>
+    <div class="kv">
+      <div><div class="lab">来源窗口</div><b id="app">—</b></div>
+      <div><div class="lab">所属分类</div><b id="cat">—</b></div>
+    </div>
+
+    <details class="content" id="contentBox">
+      <summary>查看触发内容（命中词已标红）</summary>
+      <div class="ct" id="content"></div>
+    </details>
+  </div>
+
+  <div class="foot">
+    <button class="btn sec" id="btnIgnore">忽略本次</button>
+    <button class="btn sec" id="btnDetails">查看详情</button>
+    <button class="btn" id="btnAck">已知悉</button>
+  </div>
+</div>
+
+<script>
+  const send = obj => window.chrome.webview.postMessage(JSON.stringify(obj));
+  const $ = id => document.getElementById(id);
+  const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  window.chrome.webview.addEventListener('message', e => {
+    const m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (m.type === 'init') render(m);
+  });
+
+  function render(m) {
+    const sev = m.severity || 'hi';
+    const badge = $('badge');
+    badge.className = 'ic-badge ' + sev;
+    badge.innerHTML = sev === 'hi'
+      ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'
+      : sev === 'mid'
+      ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>'
+      : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>';
+
+    $('ttl').textContent = sev === 'hi' ? '高危违禁词命中' : sev === 'mid' ? '违禁词命中提醒' : '低危词汇提示';
+    $('word').textContent = m.word || '—';
+    if ((m.words||[]).length > 1) $('word').insertAdjacentHTML('afterend', '<span class="count-pill">共 ' + m.words.length + ' 个</span>');
+    $('app').textContent = [m.target, m.windowTitle].filter(Boolean).join(' · ') || '—';
+    $('cat').textContent = m.category || '未分类';
+
+    const ct = $('content');
+    const words = (m.words||[]).filter(Boolean);
+    let html = esc(m.content || '');
+    if (html) {
+      for (const w of words) {
+        const re = new RegExp(esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        html = html.replace(re, m => '<mark>' + m + '</mark>');
+      }
+    }
+    ct.innerHTML = html || '（无内容文本）';
+    $('contentBox').open = false;
+  }
+
+  $('btnAck').addEventListener('click', () => send({type:'popupAction', action:'ack'}));
+  $('btnIgnore').addEventListener('click', () => send({type:'popupAction', action:'ignore'}));
+  $('btnDetails').addEventListener('click', () => send({type:'popupAction', action:'details'}));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') send({type:'popupAction', action:'ignore'}); });
+
+  window.chrome.webview.postMessage(JSON.stringify({type:'ready'}));
+</script>
+</body>
+</html>

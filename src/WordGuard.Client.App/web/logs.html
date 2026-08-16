@@ -5,56 +5,62 @@
 <title>WordGuard · 监控日志</title>
 <style>
   :root{
-    --accent:#2f6bff; --accent-2:#06b6d4; --accent-soft:#eaf1ff;
-    --danger:#ef4444; --danger-soft:#fdeaea;
-    --ok:#10b981; --ok-soft:#e7f6ef;
-    --warn:#f59e0b; --warn-soft:#fef3e2;
-    --text:#16203a; --muted:#6b7589;
-    --bg:#eef2f9; --panel:#ffffff; --border:#e6eaf2;
-    --radius:14px;
+    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
+    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
+    --bg:#EEF2F7; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
+    --hi:#DC2626; --hi-l:#FEF2F2; --mid:#D97706; --mid-l:#FFFBEB;
+    --lo:#2563EB; --lo-l:#EFF4FF; --ok:#059669; --ok-l:#ECFDF5;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 6px 18px rgba(15,23,42,.06);
     --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
-  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow:hidden}
-  .app{height:100vh;display:flex;flex-direction:column;background:var(--panel)}
+  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:13.5px;overflow:hidden;-webkit-font-smoothing:antialiased}
+  .app{height:100vh;display:flex;flex-direction:column;background:var(--bg)}
 
-  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
-  .titlebar .brand{display:flex;align-items:center;gap:11px;font-weight:800}
-  .titlebar .brand .logo{width:28px;height:28px;display:grid;place-items:center;background:rgba(255,255,255,.2);border-radius:9px}
-  .titlebar .brand .logo svg{width:16px;height:16px}
-  .titlebar .brand small{font-weight:500;opacity:.85;font-size:11.5px}
-  .titlebar .count{font-size:12px;background:rgba(255,255,255,.18);padding:4px 12px;border-radius:20px}
+  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;
+    background:#fff;border-bottom:1px solid var(--line);flex:none}
+  .titlebar .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+  .titlebar .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(160deg,var(--blue),var(--blue-d));
+    display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .titlebar .brand small{font-weight:400;opacity:.75;font-size:11.5px;color:var(--sub)}
+  .count{font-size:12px;background:var(--blue-l);color:var(--blue-d);padding:5px 12px;border-radius:20px;font-weight:600}
 
-  .content{flex:1;padding:20px 26px;overflow:auto}
-  h2{font-size:19px;margin:0 0 4px;font-weight:800}
-  .sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+  .content{flex:1;padding:20px 24px;overflow:auto}
+  h2{font-size:19px;margin:0 0 4px;font-weight:700}
+  .sub{color:var(--sub);font-size:12.5px;margin:0 0 16px}
 
-  .toolbar{display:flex;gap:9px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
-  .btn{padding:8px 15px;border:1px solid var(--border);background:#fff;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;color:#33405c;transition:.15s}
-  .btn:hover{background:#f4f7fc;border-color:var(--accent);color:var(--accent)}
-  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-  input[type=text]{padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:12.5px;width:200px}
-  input[type=date]{padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:12.5px}
+  .toolbar{display:flex;gap:9px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+  .toolbar input[type=date],.toolbar input[type=text]{padding:8px 12px;border:1px solid var(--line-d);border-radius:8px;
+    font-size:13px;background:#fff;color:var(--ink);font-family:inherit}
+  .toolbar input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
+  .toolbar .sep{color:var(--mut);font-size:12.5px}
+  .btn{border:none;background:var(--blue);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{background:var(--blue-d)}
 
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-  th,td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}
-  th{background:#f5f7fb;font-weight:700;color:#56627a;font-size:12px;white-space:nowrap}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;
+    background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+  th,td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:#F8FAFC;font-weight:600;color:var(--sub);font-size:12px;white-space:nowrap}
   tr:last-child td{border-bottom:none}
-  tbody tr:hover td{background:#f8fbff}
-  .tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:600;background:#eef0f3;color:#535b69}
-  .tag.h{background:var(--danger-soft);color:var(--danger)}
-  .tag.m{background:var(--warn-soft);color:var(--warn)}
-  .tag.l{background:var(--ok-soft);color:var(--ok)}
-  .empty{color:var(--muted);text-align:center;padding:30px;background:#f7f9fc;border:1px dashed var(--border);border-radius:var(--radius)}
+  tbody tr:hover td{background:#F8FBFF}
+  .tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:600}
+  .tag.h{background:var(--hi-l);color:var(--hi)}
+  .tag.m{background:var(--mid-l);color:var(--mid)}
+  .tag.l{background:var(--lo-l);color:var(--lo)}
+  .tag.w{background:var(--ok-l);color:var(--ok)}
   .content-cell{max-width:320px;white-space:pre-wrap;word-break:break-all}
+  .time-cell{white-space:nowrap;font-family:var(--mono);font-size:11.5px;color:var(--sub)}
+  .empty{color:var(--mut);text-align:center;padding:30px;background:var(--card);border:1px dashed var(--line-d);
+    border-radius:13px;margin-top:14px;font-size:13px}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="titlebar">
     <div class="brand">
-      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+      <span class="logo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span>
       <span>WordGuard <small>监控日志</small></span>
     </div>
     <span class="count" id="count">0 条</span>
@@ -65,9 +71,9 @@
     <div class="sub">命中记录本地存储，仅本机可查</div>
 
     <div class="toolbar">
-      <input type="date" id="fFrom"><span style="color:var(--muted)">至</span><input type="date" id="fTo">
+      <input type="date" id="fFrom"><span class="sep">至</span><input type="date" id="fTo">
       <input type="text" id="fFilter" placeholder="内容关键字（可选）">
-      <button class="btn primary" onclick="query()">查询</button>
+      <button class="btn" onclick="query()">查询</button>
     </div>
 
     <table>
@@ -92,15 +98,15 @@
     document.getElementById('emptyBox').innerHTML = '';
     document.getElementById('rows').innerHTML = rows.length ? rows.map(r => `
       <tr>
-        <td style="white-space:nowrap;font-family:var(--mono);font-size:11.5px">${esc(r.time)}</td>
+        <td class="time-cell">${esc(r.time)}</td>
         <td>${esc(r.target)}</td>
         <td>${esc(r.window)}</td>
         <td><span class="tag ${r.sev==='high'?'h':r.sev==='medium'?'m':'l'}">${sevName(r.sev)}</span></td>
         <td class="content-cell">${esc(r.content)}</td>
         <td>${(r.words||[]).map(w=>`<span class="tag h">${esc(w)}</span>`).join(' ')}</td>
-        <td>${esc(r.disp)}</td>
+        <td><span class="tag w">${esc(r.disp)}</span></td>
       </tr>`).join('') : '';
-    if (!rows.length) document.getElementById('emptyBox').innerHTML = '<div class="empty" style="margin-top:14px">该时间范围内无命中记录</div>';
+    if (!rows.length) document.getElementById('emptyBox').innerHTML = '<div class="empty">该时间范围内无命中记录</div>';
   }
   const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const sevName = s => s === 'high' ? '高' : s === 'medium' ? '中' : '低';

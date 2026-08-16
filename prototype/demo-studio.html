@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WordGuard 管理控制台 — 设计 Demo v2</title>
+<style>
+  :root{
+    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
+    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
+    --bg:#F1F5F9; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
+    --hi:#DC2626; --mid:#D97706; --lo:#2563EB;
+    --ok:#059669;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 4px 12px rgba(15,23,42,.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0; font-family:"Segoe UI",system-ui,-apple-system,"Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .topbar{height:52px; background:#FFFFFF; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 16px; gap:12px; position:relative; z-index:20;}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:600; font-size:15px;}
+  .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(160deg,var(--blue),var(--blue-d));
+    display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35);}
+  .brand small{font-weight:400;color:var(--mut);font-size:12px;margin-left:2px;}
+  .topbar .spacer{flex:1;}
+  .env{font-size:12px;color:var(--sub);background:var(--blue-l);border:1px solid #DBEAFE;
+    padding:4px 10px;border-radius:6px;display:flex;align-items:center;gap:6px;}
+  .env .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);}
+  .btn-ghost{border:1px solid var(--line-d);background:#fff;color:var(--sub);
+    padding:6px 12px;border-radius:7px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+  .avatar{width:30px;height:30px;border-radius:50%;background:#E2E8F0;display:grid;place-items:center;color:var(--sub);font-weight:600;font-size:12px;}
+
+  .shell{display:flex;height:calc(100% - 52px);}
+  .nav{width:212px;background:#FFFFFF;border-right:1px solid var(--line);padding:14px 10px;flex-shrink:0;}
+  .nav .grp{font-size:11px;letter-spacing:.06em;color:var(--mut);text-transform:uppercase;padding:14px 10px 6px;font-weight:600;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--sub);
+    text-decoration:none;font-size:13.5px;cursor:pointer;margin-bottom:2px;}
+  .nav a:hover{background:var(--bg);color:var(--ink);}
+  .nav a.active{background:var(--blue-l);color:var(--blue-d);font-weight:600;}
+  .nav a .ic{width:18px;height:18px;flex-shrink:0;opacity:.85;}
+  .nav a .badge{margin-left:auto;background:var(--line);color:var(--sub);font-size:11px;border-radius:10px;padding:1px 7px;}
+  .nav a.active .badge{background:var(--blue);color:#fff;}
+
+  .main{flex:1;overflow:auto;padding:22px 26px;}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;gap:16px;}
+  .page-head h1{font-size:20px;margin:0 0 4px;font-weight:600;letter-spacing:-.01em;}
+  .page-head p{margin:0;color:var(--sub);font-size:13px;}
+  .hide{display:none!important;}
+
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  .search{flex:1;min-width:220px;position:relative;}
+  .search input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--line-d);border-radius:8px;font-size:13.5px;background:#fff;color:var(--ink);}
+  .search input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--mut);}
+  .btn{border:none;background:var(--blue);color:#fff;padding:9px 15px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 1px 2px rgba(37,99,235,.3);}
+  .btn:hover{background:var(--blue-d);}
+  .btn.sec{background:#fff;color:var(--sub);border:1px solid var(--line-d);box-shadow:none;font-weight:500;}
+  .btn.sec:hover{border-color:var(--blue);color:var(--blue);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:12px;color:var(--mut);font-weight:600;padding:11px 16px;border-bottom:1px solid var(--line);background:#F8FAFC;letter-spacing:.02em;}
+  tbody td{padding:12px 16px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FAFBFC;}
+  .word{font-weight:600;font-family:"Segoe UI",Consolas,monospace;}
+  .cat-tag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub);}
+  .cat-dot{width:9px;height:9px;border-radius:50%;}
+  .sev{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:6px;}
+  .sev.hi{background:#FEF2F2;color:var(--hi);} .sev.mid{background:#FFFBEB;color:var(--mid);} .sev.lo{background:var(--blue-l);color:var(--lo);}
+  .switch{position:relative;width:38px;height:22px;display:inline-block;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--line-d);border-radius:20px;transition:.2s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+  .switch input:checked + .slider{background:var(--blue);}
+  .switch input:checked + .slider:before{transform:translateX(16px);}
+  .row-act{display:flex;gap:6px;}
+  .icon-btn{width:30px;height:30px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;display:grid;place-items:center;color:var(--sub);}
+  .icon-btn:hover{border-color:var(--blue);color:var(--blue);}
+  .icon-btn.danger:hover{border-color:var(--hi);color:var(--hi);}
+
+  .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+  .cat-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px;box-shadow:var(--shadow);}
+  .cat-card .top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .cat-card .big-dot{width:14px;height:14px;border-radius:50%;}
+  .cat-card h3{margin:0;font-size:15px;}
+  .cat-card .cnt{margin-left:auto;font-size:12px;color:var(--mut);background:var(--bg);padding:3px 9px;border-radius:8px;}
+  .cat-card .desc{color:var(--sub);font-size:12.5px;margin:0 0 12px;min-height:18px;}
+  .cat-card .acts{display:flex;gap:8px;}
+  .cat-card .acts .btn.sec{flex:1;justify-content:center;padding:7px;}
+  .add-cat{border:2px dashed var(--line-d);border-radius:12px;background:#FBFCFE;display:grid;place-items:center;color:var(--sub);cursor:pointer;min-height:140px;font-size:14px;gap:8px;}
+  .add-cat:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l);}
+
+  .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .cfg-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow);}
+  .cfg-card h3{margin:0 0 4px;font-size:15px;}
+  .cfg-card .hint{color:var(--mut);font-size:12.5px;margin:0 0 14px;}
+  .field{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);}
+  .field:last-child{border-bottom:none;}
+  .field .lbl{font-size:13.5px;}
+  .field .lbl small{display:block;color:var(--mut);font-size:12px;}
+
+  .modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-mask.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;width:440px;max-width:92vw;box-shadow:0 20px 60px rgba(15,23,42,.3);overflow:hidden;}
+  .modal header{padding:18px 20px 0;}
+  .modal header h2{margin:0;font-size:17px;}
+  .modal header p{margin:5px 0 0;color:var(--sub);font-size:13px;}
+  .modal .body{padding:18px 20px;}
+  .modal .body label{display:block;font-size:12.5px;color:var(--sub);margin:0 0 6px;font-weight:600;}
+  .modal .body input,.modal .body select,.modal .body textarea{width:100%;padding:9px 11px;border:1px solid var(--line-d);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);}
+  .modal .body input:focus,.modal .body select:focus,.modal .body textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+  .modal .body .seg{display:flex;gap:8px;margin-top:4px;}
+  .modal .body .seg button{flex:1;padding:8px;border:1px solid var(--line-d);background:#fff;border-radius:8px;cursor:pointer;font-size:13px;color:var(--sub);}
+  .modal .body .seg button.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue-d);font-weight:600;}
+  .modal .body .row{display:flex;gap:10px;}
+  .modal .body .row>div{flex:1;}
+  .modal .color-row{display:flex;gap:8px;margin-top:6px;}
+  .modal .color-row span{width:26px;height:26px;border-radius:7px;cursor:pointer;border:2px solid transparent;}
+  .modal .color-row span.on{border-color:var(--ink);}
+  .modal footer{padding:14px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--line);background:#F8FAFC;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;opacity:0;transition:.25s;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.25);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .footer-note{margin-top:18px;color:var(--mut);font-size:12px;}
+  .client-table{width:100%;border-collapse:collapse;}
+  .client-table td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;}
+  .client-table tr:last-child td{border-bottom:none;}
+  .pill{font-size:11px;padding:2px 8px;border-radius:6px;background:#ECFDF5;color:var(--ok);font-weight:600;}
+  .pill.off{background:var(--bg);color:var(--mut);}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span>WordGuard <small>违禁词管理控制台</small></div>
+    <div class="spacer"></div>
+    <div class="env"><span class="dot"></span> 已连接 · 12 台客户端在线</div>
+    <button class="btn-ghost" onclick="toast('暂无新通知','ok')">通知</button>
+    <div class="avatar">管</div>
+  </div>
+
+  <div class="shell">
+    <nav class="nav">
+      <div class="grp">词库</div>
+      <a class="active" data-page="words"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>违禁词管理<span class="badge">142</span></a>
+      <a data-page="cats"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>分类管理<span class="badge">6</span></a>
+      <div class="grp">运营</div>
+      <a data-page="clients"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>客户端管理<span class="badge">12</span></a>
+      <a data-page="audit"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>审计与导出</a>
+    </nav>
+
+    <main class="main">
+      <!-- 词库管理 -->
+      <section id="page-words">
+        <div class="page-head"><div><h1>违禁词管理</h1><p>维护被监控软件中禁止出现的高危词汇，支持分级与分类。</p></div>
+          <button class="btn" onclick="openWordModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>新增违禁词</button>
+        </div>
+        <div class="toolbar">
+          <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input placeholder="搜索词汇或分类…" oninput="filterWords(this.value)" /></div>
+          <button class="btn sec" onclick="toast('已选择 0 项','ok')">批量导入</button>
+          <button class="btn sec" onclick="exportLib()">导出词库</button>
+        </div>
+        <div class="card"><table>
+          <thead><tr><th style="width:34%">词汇</th><th>分类</th><th>级别</th><th>启用</th><th style="width:90px">操作</th></tr></thead>
+          <tbody id="wordRows"></tbody>
+        </table></div>
+        <p class="footer-note">提示：本端编辑词库与默认策略，通过「客户端管理」下发；客户端可覆盖本机生效值。</p>
+      </section>
+
+      <!-- 分类管理 -->
+      <section id="page-cats" class="hide">
+        <div class="page-head"><div><h1>分类管理</h1><p>对违禁词进行归类，便于批量下发与告警分析。</p></div>
+          <button class="btn" onclick="openCatModal()">+ 新建分类</button></div>
+        <div class="cat-grid" id="catGrid"></div>
+      </section>
+
+      <!-- 客户端管理（替代原“本机部署”） -->
+      <section id="page-clients" class="hide">
+        <div class="page-head"><div><h1>客户端管理</h1><p>查看在线客户端，将词库与默认策略统一下发。</p></div>
+          <button class="btn" onclick="toast('已向 12 台客户端下发最新词库','ok')">立即下发</button></div>
+        <div class="card"><table class="client-table">
+          <thead><tr style="text-align:left;font-size:12px;color:var(--mut);font-weight:600;padding:11px 16px"><th style="padding:11px 16px">主机 / 员工</th><th style="padding:11px 16px">状态</th><th style="padding:11px 16px">版本</th><th style="padding:11px 16px">最后命中</th></tr></thead>
+          <tbody>
+            <tr><td>客服-A01 / 张敏</td><td><span class="pill">在线</span></td><td>v2.3.0</td><td>2 分钟前</td></tr>
+            <tr><td>客服-A02 / 李磊</td><td><span class="pill">在线</span></td><td>v2.3.0</td><td>11 分钟前</td></tr>
+            <tr><td>客服-B07 / 王芳</td><td><span class="pill off">离线</span></td><td>v2.2.1</td><td>—</td></tr>
+            <tr><td>客服-B11 / 陈强</td><td><span class="pill">在线</span></td><td>v2.3.0</td><td>刚刚</td></tr>
+          </tbody>
+        </table></div>
+        <p class="footer-note">说明：管理端不再包含「本机部署」——本机运行时的监控目标 / 告警开关由客户端在「本机部署」中配置，管理端只负责词库与默认策略下发。</p>
+      </section>
+
+      <!-- 审计与导出 -->
+      <section id="page-audit" class="hide">
+        <div class="page-head"><div><h1>审计与导出</h1><p>查看命中记录概览，导出词库或审计报表。</p></div></div>
+        <div class="cfg-grid">
+          <div class="cfg-card"><h3>命中概览（近 7 天）</h3><p class="hint">本周累计命中 38 次，涉及 9 名客服。</p>
+            <div class="field"><div class="lbl">高危命中</div><b style="color:var(--hi)">12</b></div>
+            <div class="field"><div class="lbl">中危命中</div><b style="color:var(--mid)">19</b></div>
+            <div class="field"><div class="lbl">低危命中</div><b style="color:var(--lo)">7</b></div>
+          </div>
+          <div class="cfg-card"><h3>导出</h3><p class="hint">导出为 JSON（客户端可直接加载）。</p>
+            <button class="btn" style="width:100%;justify-content:center" onclick="exportLib()">导出词库 JSON</button>
+            <button class="btn sec" style="width:100%;justify-content:center;margin-top:10px" onclick="toast('审计报表已导出','ok')">导出审计报表 CSV</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 新增/编辑 违禁词 模态 -->
+  <div class="modal-mask" id="wordMask"><div class="modal">
+    <header><h2 id="wordTitle">新增违禁词</h2><p>添加到词库并下发至客户端。</p></header>
+    <div class="body">
+      <label>词汇文本</label><input id="wText" placeholder="例如：绝对保过、内部价" />
+      <div class="row" style="margin-top:14px">
+        <div><label>所属分类</label><select id="wCat"></select></div>
+        <div><label>严重级别</label>
+          <div class="seg" id="wSev"><button data-v="hi" onclick="sevPick(this)">高</button><button data-v="mid" class="on" onclick="sevPick(this)">中</button><button data-v="lo" onclick="sevPick(this)">低</button></div>
+        </div>
+      </div>
+      <label style="margin-top:14px">备注（可选）</label><textarea id="wNote" rows="2" placeholder="说明该词的来源或处理建议"></textarea>
+    </div>
+    <footer><button class="btn sec" onclick="closeModal('wordMask')">取消</button><button class="btn" onclick="saveWord()">保存</button></footer>
+  </div></div>
+
+  <!-- 分类 模态 -->
+  <div class="modal-mask" id="catMask"><div class="modal">
+    <header><h2 id="catTitle">新建分类</h2><p>分类用于组织违禁词。</p></header>
+    <div class="body">
+      <label>分类名称</label><input id="cName" placeholder="例如：虚假承诺" />
+      <label style="margin-top:14px">标识颜色</label><div class="color-row" id="cColors"></div>
+      <label style="margin-top:14px">说明（可选）</label><input id="cDesc" placeholder="该分类涵盖的违规类型" />
+    </div>
+    <footer><button class="btn sec" onclick="closeModal('catMask')">取消</button><button class="btn" onclick="saveCat()">保存</button></footer>
+  </div></div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const CATS=[
+    {id:'c1',name:'虚假承诺',color:'#DC2626',desc:'夸大效果、保证性表述',count:34},
+    {id:'c2',name:'绝对化用语',color:'#D97706',desc:'最高级、唯一等违禁广告词',count:28},
+    {id:'c3',name:'诱导私下交易',color:'#2563EB',desc:'引导加微信/转账',count:21},
+    {id:'c4',name:'竞品诋毁',color:'#7C3AED',desc:'贬低同行',count:9},
+    {id:'c5',name:'敏感政治',color:'#0891B2',desc:'涉政涉敏内容',count:5},
+    {id:'c6',name:'低俗内容',color:'#DB2777',desc:'不雅用语',count:45},
+  ];
+  let words=[
+    {id:1,text:'绝对保过',cat:'c2',sev:'hi',on:true},
+    {id:2,text:'内部最低价',cat:'c1',sev:'mid',on:true},
+    {id:3,text:'加我微信私下聊',cat:'c3',sev:'mid',on:true},
+    {id:4,text:'全网第一',cat:'c2',sev:'hi',on:false},
+    {id:5,text:'那个牌子都是假的',cat:'c4',sev:'lo',on:true},
+  ];
+  const APPS=[{n:'微信',e:'WeChat.exe'},{n:'QQ',e:'QQ.exe'},{n:'企业微信',e:'WXWork.exe'},{n:'钉钉',e:'DingTalk.exe'},{n:'Chrome',e:'chrome.exe'},{n:'Edge',e:'msedge.exe'},{n:'记事本',e:'notepad.exe'}];
+  let editId=null, editCatId=null, sevVal='mid';
+  const $=s=>document.querySelector(s);
+  const catName=id=>{const c=CATS.find(x=>x.id===id);return c?c.name:id;};
+  const catColor=id=>{const c=CATS.find(x=>x.id===id);return c?c.color:'#94A3B8';};
+
+  function renderWords(filter=''){
+    const tb=$('#wordRows');tb.innerHTML='';
+    words.filter(w=>!filter||w.text.includes(filter)||catName(w.cat).includes(filter)).forEach(w=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td class="word">${w.text}</td>
+        <td><span class="cat-tag"><span class="cat-dot" style="background:${catColor(w.cat)}"></span>${catName(w.cat)}</span></td>
+        <td><span class="sev ${w.sev}">${w.sev==='hi'?'高':w.sev==='mid'?'中':'低'}</span></td>
+        <td><label class="switch"><input type="checkbox" ${w.on?'checked':''} onchange="toggleWord(${w.id},this.checked)"><span class="slider"></span></label></td>
+        <td><div class="row-act">
+          <button class="icon-btn" title="编辑" onclick="openWordModal(${w.id})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="icon-btn danger" title="删除" onclick="delWord(${w.id})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+        </div></td>`;
+      tb.appendChild(tr);
+    });
+  }
+  function renderCats(){
+    const g=$('#catGrid');g.innerHTML='';
+    CATS.forEach(c=>{
+      const d=document.createElement('div');d.className='cat-card';
+      d.innerHTML=`<div class="top"><span class="big-dot" style="background:${c.color}"></span><h3>${c.name}</h3><span class="cnt">${c.count} 词</span></div>
+        <p class="desc">${c.desc}</p>
+        <div class="acts"><button class="btn sec" onclick="openCatModal('${c.id}')">重命名</button>
+        <button class="btn sec" style="color:var(--hi);border-color:#FCA5A5" onclick="delCat('${c.id}')">删除</button></div>`;
+      g.appendChild(d);
+    });
+    const add=document.createElement('div');add.className='add-cat';add.onclick=()=>openCatModal();
+    add.innerHTML=`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 新建分类`;
+    g.appendChild(add);
+  }
+
+  document.querySelectorAll('.nav a').forEach(a=>a.onclick=()=>{
+    document.querySelectorAll('.nav a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('main section').forEach(s=>s.classList.add('hide'));
+    $('#page-'+a.dataset.page).classList.remove('hide');
+  });
+  function filterWords(v){renderWords(v);}
+  function toggleWord(id,on){const w=words.find(x=>x.id===id);if(w)w.on=on;toast(on?'已启用':'已停用','ok');}
+  function delWord(id){words=words.filter(x=>x.id!==id);renderWords();toast('已删除该词','ok');}
+
+  function openWordModal(id){
+    editId=id||null;$('#wordTitle').textContent=id?'编辑违禁词':'新增违禁词';
+    const sel=$('#wCat');sel.innerHTML=CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    if(id){const w=words.find(x=>x.id===id);$('#wText').value=w.text;sel.value=w.cat;setSev(w.sev);}
+    else{$('#wText').value='';sel.value=CATS[0].id;setSev('mid');}
+    $('#wordMask').classList.add('show');
+  }
+  function setSev(v){sevVal=v;document.querySelectorAll('#wSev button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
+  function sevPick(b){setSev(b.dataset.v);}
+  function saveWord(){
+    const t=$('#wText').value.trim();if(!t){toast('请填写词汇文本','err');return;}
+    if(editId){const w=words.find(x=>x.id===editId);w.text=t;w.cat=$('#wCat').value;w.sev=sevVal;}
+    else{words.push({id:Date.now(),text:t,cat:$('#wCat').value,sev:sevVal,on:true});}
+    renderWords();closeModal('wordMask');toast('已保存','ok');
+  }
+
+  const COLORS=['#DC2626','#D97706','#2563EB','#0891B2','#059669','#DB2777','#7C3AED','#475569'];
+  function openCatModal(id){
+    editCatId=id||null;$('#catTitle').textContent=id?'重命名分类':'新建分类';
+    $('#cName').value=id?(CATS.find(c=>c.id===id).name):'';
+    $('#cDesc').value=id?(CATS.find(c=>c.id===id).desc):'';
+    const cr=$('#cColors');cr.innerHTML='';
+    COLORS.forEach((c,i)=>{const s=document.createElement('span');s.style.background=c;if(i===0)s.className='on';
+      s.onclick=()=>{document.querySelectorAll('#cColors span').forEach(x=>x.classList.remove('on'));s.classList.add('on');};cr.appendChild(s);});
+    $('#catMask').classList.add('show');
+  }
+  function saveCat(){
+    const n=$('#cName').value.trim();if(!n){toast('请填写分类名称','err');return;}
+    const col=document.querySelector('#cColors span.on').style.background;
+    if(editCatId){const c=CATS.find(x=>x.id===editCatId);c.name=n;c.desc=$('#cDesc').value;}
+    else CATS.push({id:'c'+Date.now(),name:n,color:col,desc:$('#cDesc').value,count:0});
+    renderCats();closeModal('catMask');toast('分类已保存','ok');
+  }
+  function delCat(id){const c=CATS.find(x=>x.id===id);if(c.count>0&&!confirm('该分类下仍有 '+c.count+' 个词，删除后归入「未分类」。'))return;CATS=CATS.filter(x=>x.id!==id);renderCats();toast('分类已删除','ok');}
+
+  function closeModal(id){$('#'+id).classList.remove('show');}
+  document.querySelectorAll('.modal-mask').forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove('show');});
+  function exportLib(){toast('词库已导出为 wordlib.json','ok');}
+
+  let toastT;
+  function toast(t,kind){const el=$('#toast');el.textContent=t;el.className='toast show '+(kind||'');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200);}
+
+  renderWords();renderCats();
+</script>
+</body>
+</html>

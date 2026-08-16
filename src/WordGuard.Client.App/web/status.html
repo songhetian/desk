@@ -5,154 +5,241 @@
 <title>WordGuard · 监控状态</title>
 <style>
   :root{
-    --accent:#2f6bff; --accent-2:#06b6d4; --accent-soft:#eaf1ff;
-    --danger:#ef4444; --danger-soft:#fdeaea;
-    --ok:#10b981; --ok-soft:#e7f6ef;
-    --warn:#f59e0b; --warn-soft:#fef3e2;
-    --text:#16203a; --muted:#6b7589; --faint:#9aa3b5;
-    --bg:#eef2f9; --panel:#ffffff; --border:#e6eaf2;
-    --shadow:0 1px 3px rgba(20,40,80,.06),0 10px 30px rgba(20,40,80,.07);
-    --radius:14px;
+    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
+    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
+    --bg:#EEF2F7; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
+    --hi:#DC2626; --hi-l:#FEF2F2; --mid:#D97706; --mid-l:#FFFBEB;
+    --lo:#2563EB; --lo-l:#EFF4FF; --ok:#059669; --ok-l:#ECFDF5;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 6px 18px rgba(15,23,42,.06);
     --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
-  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;background:radial-gradient(1100px 560px at 85% -12%,rgba(47,107,255,.10),transparent 60%),var(--bg);color:var(--text);font-size:13px;overflow:hidden}
-  .app{height:100vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin:10px;box-shadow:var(--shadow)}
+  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:13.5px;overflow:hidden;-webkit-font-smoothing:antialiased}
+  .app{height:100vh;display:flex;flex-direction:column;background:var(--bg)}
 
-  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
-  .titlebar .brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.3px}
-  .titlebar .brand .logo{width:28px;height:28px;display:grid;place-items:center;background:rgba(255,255,255,.2);border-radius:9px;box-shadow:0 0 14px rgba(255,255,255,.25)}
-  .titlebar .brand .logo svg{width:16px;height:16px}
-  .titlebar .brand small{font-weight:500;opacity:.85;font-size:11.5px}
-  .titlebar .live{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600}
-  .titlebar .live .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(16,185,129,.5);animation:pulse 1.8s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}70%{box-shadow:0 0 0 8px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;
+    background:#fff;border-bottom:1px solid var(--line);flex:none}
+  .titlebar .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+  .titlebar .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(160deg,var(--blue),var(--blue-d));
+    display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .titlebar .brand small{font-weight:400;opacity:.75;font-size:11.5px;color:var(--sub)}
+  .live{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ok);
+    background:var(--ok-l);border:1px solid #A7F3D0;padding:5px 11px;border-radius:20px}
+  .live.off{color:var(--sub);background:#F1F5F9;border-color:var(--line-d)}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(5,150,105,.15)}
 
-  .readonly-bar{display:flex;align-items:center;gap:10px;padding:11px 22px;background:linear-gradient(90deg,#fef3e2,#fff7e6);color:#8a6d1f;border-bottom:1px solid #f3d8a8;font-weight:600;font-size:12.5px;flex:none}
-  .readonly-bar svg{width:16px;height:16px;flex:none}
+  .note{display:flex;align-items:center;gap:10px;padding:11px 22px;background:var(--blue-l);
+    color:var(--blue-d);border-bottom:1px solid #DCE7FF;font-size:12.5px;font-weight:500;flex:none}
+  .note svg{width:15px;height:15px;flex:none;color:var(--blue)}
 
-  .content{flex:1;padding:20px 26px;overflow:auto}
-  h2{font-size:19px;margin:0 0 4px;font-weight:800}
-  .sub{color:var(--muted);font-size:12.5px;margin:0 0 18px}
+  .content{flex:1;padding:18px 22px;overflow:auto}
+  h2{font-size:19px;margin:0 0 4px;font-weight:700}
+  .sub{color:var(--sub);font-size:12.5px;margin:0 0 16px;word-break:break-all}
 
-  .section-h{font-size:14px;font-weight:700;color:#26324d;margin:20px 0 12px;display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
-  .section-h::before{content:"";width:4px;height:15px;background:linear-gradient(var(--accent),var(--accent-2));border-radius:2px}
-  .section-h::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
-  .section-h .chev{transition:transform .15s;color:var(--muted)}
-  .section-h.collapsed .chev{transform:rotate(-90deg)}
+  .section-h{font-size:14px;font-weight:600;color:var(--ink);margin:20px 0 10px;display:flex;align-items:center;gap:9px}
+  .section-h::before{content:"";width:4px;height:15px;background:var(--blue);border-radius:2px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px;box-shadow:var(--shadow)}
 
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
-  .panel.collapsed{display:none}
-  .kv{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eef0f3;gap:14px}
+  /* 部署配置编辑 */
+  .deploy label{display:block;font-size:12px;color:var(--sub);font-weight:600;margin-bottom:6px}
+  .deploy textarea,.deploy input[type=number]{width:100%;padding:9px 12px;border:1px solid var(--line-d);
+    border-radius:9px;font-size:13px;font-family:var(--mono);background:#fff;resize:vertical;color:var(--ink)}
+  .deploy textarea:focus,.deploy input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
+  .deploy .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px}
+  .switches{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0 14px}
+  .swlabel{display:flex;align-items:center;gap:8px;margin:0;font-weight:500;color:var(--ink);cursor:pointer}
+  .switch{position:relative;width:38px;height:22px;display:inline-block}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:var(--line-d);border-radius:20px;transition:.2s;cursor:pointer}
+  .slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .switch input:checked + .slider{background:var(--blue)}
+  .switch input:checked + .slider:before{transform:translateX(16px)}
+
+  .btn{border:none;background:var(--blue);color:#fff;padding:9px 16px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+  .btn:hover{background:var(--blue-d)}
+  .btn.sec{background:#fff;color:var(--sub);border:1px solid var(--line-d)}
+  .btn.sec:hover{border-color:var(--blue);color:var(--blue);background:#fff}
+  .managed-tag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+  .managed-tag.on{background:var(--blue-l);color:var(--blue-d)}
+  .managed-tag.off{background:#F1F5F9;color:var(--mut)}
+
+  .kv{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid var(--line);gap:14px}
   .kv:last-child{border-bottom:none}
-  .kv .lbl{color:#3c4660;font-weight:500;display:flex;align-items:center;gap:8px}
-  .kv .lbl svg{width:15px;height:15px;color:var(--accent);opacity:.8}
-  .kv-right{display:flex;align-items:center;gap:10px}
-  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700}
-  .badge.ok{background:var(--ok-soft);color:var(--ok)}
-  .badge.off{background:#eef0f3;color:#9499a3}
+  .kv .lbl{color:var(--sub);font-weight:500;display:flex;align-items:center;gap:8px}
+  .kv-right{color:var(--ink);font-weight:500;text-align:right}
 
   .tlist{display:flex;flex-wrap:wrap;gap:7px}
-  .tlist .tag{font-family:var(--mono);font-size:11.5px;background:#f1f5fb;border:1px solid var(--border);padding:4px 10px;border-radius:8px;color:#41506b}
-  .tlist .tag.h{background:var(--danger-soft);color:var(--danger);border-color:#f3c9c9;font-weight:700}
-  .tlist .tag.m{background:var(--warn-soft);color:var(--warn);border-color:#f3d8a8;font-weight:600}
-  .tlist .tag.l{background:var(--ok-soft);color:var(--ok);border-color:#b9e3cd}
-  .tlist .tag.off{opacity:.4;text-decoration:line-through}
+  .tag{font-family:var(--mono);font-size:11.5px;background:#F8FAFC;border:1px solid var(--line);
+    padding:4px 10px;border-radius:8px;color:var(--sub)}
+  .tag.h{background:var(--hi-l);color:var(--hi);border-color:#FECACA;font-weight:700}
+  .tag.m{background:var(--mid-l);color:var(--mid);border-color:#FDE68A;font-weight:600}
+  .tag.l{background:var(--lo-l);color:var(--lo);border-color:#BFDBFE}
+  .tag small{font-weight:500;opacity:.75;margin-left:6px}
+  .empty{color:var(--mut);text-align:center;padding:18px;background:#F8FAFC;border:1px dashed var(--line-d);border-radius:12px;font-size:12.5px}
 
-  .empty{color:var(--muted);text-align:center;padding:18px;background:#f7f9fc;border:1px dashed var(--border);border-radius:var(--radius);font-size:12.5px}
+  /* 自定义模态框（绝不用浏览器原生 confirm） */
+  .mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:100}
+  .mask.show{display:flex}
+  .modal{width:340px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(15,23,42,.3);overflow:hidden;animation:pop .16s ease}
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion: reduce){.modal{animation:none}}
+  .modal .m-head{display:flex;gap:12px;padding:18px 20px 8px;align-items:flex-start}
+  .modal .m-ic{width:38px;height:38px;border-radius:11px;background:var(--mid-l);color:var(--mid);display:grid;place-items:center;flex-shrink:0}
+  .modal .m-ttl{font-size:15px;font-weight:600}
+  .modal .m-sub{color:var(--sub);font-size:12.5px;margin-top:2px}
+  .modal .m-foot{padding:14px 20px 18px;display:flex;gap:9px;justify-content:flex-end;background:#F8FAFC;border-top:1px solid var(--line);margin-top:12px}
+
+  /* toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--ink);
+    color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;opacity:0;transition:.25s;pointer-events:none;z-index:120}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--hi)}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="titlebar">
     <div class="brand">
-      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+      <span class="logo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span>
       <span>WordGuard <small>监控客户端</small></span>
     </div>
-    <span class="live"><span class="dot"></span><span id="liveText">实时监控中</span></span>
+    <span class="live" id="liveBox"><span class="dot"></span><span id="liveText">实时监控中</span></span>
   </div>
 
-  <div class="readonly-bar">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <span>本窗体为只读展示 · 监控目标与告警通道由管理员在「词库管理端」配置后随 wordlib.json 下发 · 员工无法修改</span>
+  <div class="note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    <span>本机部署配置：覆盖管理端下发值，保存后即生效（写入 wordguard.settings.json）。</span>
   </div>
 
   <div class="content">
     <h2>监控状态</h2>
     <div class="sub" id="subInfo">加载中…</div>
 
-    <div class="section-h" onclick="toggleSec('targetsPanel', this)">监控目标 <span class="chev">▾</span></div>
-    <div class="panel" id="targetsPanel"><div id="targets" class="empty">加载中…</div></div>
-
-    <div class="section-h" onclick="toggleSec('channelsPanel', this)">告警通道 <span class="chev">▾</span></div>
-    <div class="panel" id="channelsPanel">
-      <div class="kv"><span class="lbl">弹窗提醒</span><span class="kv-right"><span class="badge" id="bPopup">—</span></span></div>
-      <div class="kv"><span class="lbl">声音提醒</span><span class="kv-right"><span class="badge" id="bSound">—</span></span></div>
-      <div class="kv"><span class="lbl">高亮标记</span><span class="kv-right"><span class="badge" id="bHighlight">—</span></span></div>
+    <div class="section-h">本机部署配置 <span id="managedTag" class="managed-tag off">沿用管理端</span></div>
+    <div class="card deploy">
+      <div class="row">
+        <div style="flex:1;min-width:230px">
+          <label>监控目标（每行一个进程名，如 WeChat.exe）</label>
+          <textarea id="fTargets" rows="4" placeholder="WeChat.exe&#10;QQ.exe"></textarea>
+        </div>
+        <div style="width:200px">
+          <label>去重窗口（秒）</label>
+          <input type="number" id="fCooldown" min="0" max="3600">
+          <label style="margin-top:12px">日志保留（天）</label>
+          <input type="number" id="fRetention" min="1" max="3650">
+        </div>
+      </div>
+      <label>告警通道</label>
+      <div class="switches">
+        <label class="swlabel"><span class="switch"><input type="checkbox" id="fPopup"><span class="slider"></span></span>弹窗提醒</label>
+        <label class="swlabel"><span class="switch"><input type="checkbox" id="fSound"><span class="slider"></span></span>声音提醒</label>
+        <label class="swlabel"><span class="switch"><input type="checkbox" id="fHighlight"><span class="slider"></span></span>高亮标记</label>
+      </div>
+      <div style="display:flex;gap:9px">
+        <button class="btn" onclick="saveDeploy()">保存本机配置</button>
+        <button class="btn sec" onclick="askReset()">恢复管理端默认</button>
+      </div>
     </div>
 
-    <div class="section-h" onclick="toggleSec('libPanel', this)">监控词库（<span id="libCount">0</span> 条 · 仅显示已启用）<span class="chev">▾</span></div>
-    <div class="panel" id="libPanel"><div id="libList" class="tlist"><div class="empty">词库为空</div></div></div>
+    <div class="section-h">监控词库（<span id="libCount">0</span> 条 · 仅显示已启用）</div>
+    <div class="card"><div id="libList" class="tlist"><div class="empty" style="width:100%">词库为空</div></div></div>
 
-    <div class="section-h" onclick="toggleSec('runInfoPanel', this)">运行信息 <span class="chev">▾</span></div>
-    <div class="panel" id="runInfoPanel">
+    <div class="section-h">运行信息</div>
+    <div class="card">
       <div class="kv"><span class="lbl">词库文件</span><span class="kv-right" id="vLibStatus">—</span></div>
-      <div class="kv"><span class="lbl">去重窗口</span><span class="kv-right" id="vCooldown">—</span></div>
-      <div class="kv"><span class="lbl">日志保留</span><span class="kv-right" id="vRetention">—</span></div>
+      <div class="kv"><span class="lbl">更新时间</span><span class="kv-right" id="vUpdatedAt">—</span></div>
+      <div class="kv"><span class="lbl">生效去重窗口</span><span class="kv-right" id="vCooldown">—</span></div>
+      <div class="kv"><span class="lbl">生效日志保留</span><span class="kv-right" id="vRetention">—</span></div>
     </div>
   </div>
 </div>
 
+<!-- 恢复默认确认（自定义模态） -->
+<div class="mask" id="mask">
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="mTtl">
+    <div class="m-head">
+      <div class="m-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></div>
+      <div><div class="m-ttl" id="mTtl">恢复为管理端默认？</div><div class="m-sub">本机覆盖的部署配置将被清除，词库不受影响。</div></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn sec" onclick="closeMask()">取消</button>
+      <button class="btn" onclick="doReset()">确认恢复</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-  const libEntries = [];
+  const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const sevName = s => s === 'high' ? '高危' : s === 'medium' ? '中危' : '低危';
 
   window.chrome.webview.addEventListener('message', e => {
     const m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
     if (m.type === 'init') render(m);
+    else if (m.type === 'toast') showToast(m.text, !m.ok);
   });
 
   function render(m) {
+    const live = document.getElementById('liveBox');
+    live.classList.toggle('off', !m.online);
     document.getElementById('liveText').textContent = m.online ? '实时监控中' : '离线（词库缺失）';
     document.getElementById('subInfo').textContent = m.online
       ? `路径：${m.libPath || '—'} · 更新于 ${m.updatedAt || '—'}`
       : '词库文件未找到，监控引擎降级为空匹配（不会误告警）';
 
-    // 监控目标
-    const targets = m.targets || [];
-    document.getElementById('targets').innerHTML = targets.length
-      ? `<div class="tlist">${targets.map(t => `<span class="tag">${esc(t.exeName)}${t.exePath ? ' &nbsp;·&nbsp; ' + esc(t.exePath) : ''}</span>`).join('')}</div>`
-      : '<div class="empty">（未配置监控目标 — 请联系管理员）</div>';
+    document.getElementById('fTargets').value = (m.targets || []).map(t => t.exeName).join('\n');
+    document.getElementById('fPopup').checked = !!m.alertPopup;
+    document.getElementById('fSound').checked = !!m.alertSound;
+    document.getElementById('fHighlight').checked = !!m.alertHighlight;
+    document.getElementById('fCooldown').value = m.cooldownSeconds ?? 30;
+    document.getElementById('fRetention').value = m.logRetentionDays ?? 30;
 
-    // 三通道
-    setBadge('bPopup', m.alertPopup); setBadge('bSound', m.alertSound); setBadge('bHighlight', m.alertHighlight);
+    const tag = document.getElementById('managedTag');
+    if (m.managed) { tag.textContent = '本端已覆盖'; tag.className = 'managed-tag on'; }
+    else { tag.textContent = '沿用管理端'; tag.className = 'managed-tag off'; }
 
-    // 词库列表（只读：员工可看到在监控哪些词）
     const enabled = (m.words || []).filter(w => w.enabled);
     document.getElementById('libCount').textContent = enabled.length;
     document.getElementById('libList').innerHTML = enabled.length
-      ? enabled.map(w => `<span class="tag ${w.severity||''}">${esc(w.text)}<small style="margin-left:6px;opacity:.7;font-weight:500">${sevName(w.severity)}</small></span>`).join('')
-      : '<div class="empty">词库为空或全部停用</div>';
+      ? enabled.map(w => `<span class="tag ${w.severity||''}">${esc(w.text)}<small>${sevName(w.severity)}</small></span>`).join('')
+      : '<div class="empty" style="width:100%">词库为空或全部停用</div>';
 
-    // 运行信息
     document.getElementById('vLibStatus').textContent = m.libStatus || '—';
+    document.getElementById('vUpdatedAt').textContent = m.updatedAt || '—';
     document.getElementById('vCooldown').textContent = (m.cooldownSeconds ?? 30) + ' 秒';
     document.getElementById('vRetention').textContent = (m.logRetentionDays ?? 30) + ' 天';
   }
 
-  function setBadge(id, on) {
-    const b = document.getElementById(id);
-    b.textContent = on ? '已开启' : '已关闭';
-    b.className = 'badge ' + (on ? 'ok' : 'off');
+  function saveDeploy() {
+    const targets = document.getElementById('fTargets').value
+      .split('\n').map(l => l.trim()).filter(Boolean);
+    window.chrome.webview.postMessage(JSON.stringify({ type: 'saveDeploy',
+      targets,
+      alertPopup: document.getElementById('fPopup').checked,
+      alertSound: document.getElementById('fSound').checked,
+      alertHighlight: document.getElementById('fHighlight').checked,
+      cooldownSeconds: parseInt(document.getElementById('fCooldown').value) || 30,
+      logRetentionDays: parseInt(document.getElementById('fRetention').value) || 30,
+    }));
   }
 
-  function toggleSec(id, hdr) {
-    const p = document.getElementById(id);
-    if (p) { p.classList.toggle('collapsed'); hdr.classList.toggle('collapsed'); }
-  }
+  function askReset() { document.getElementById('mask').classList.add('show'); }
+  function closeMask() { document.getElementById('mask').classList.remove('show'); }
+  function doReset() { closeMask(); window.chrome.webview.postMessage(JSON.stringify({ type: 'resetDeploy' })); }
+  document.getElementById('mask').addEventListener('click', e => { if (e.target.id === 'mask') closeMask(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMask(); });
 
-  const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const sevName = s => s === 'high' ? '高危' : s === 'medium' ? '中危' : '低危';
+  let toastTimer = null;
+  function showToast(text, isErr) {
+    const t = document.getElementById('toast');
+    t.textContent = text;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.className = 'toast', 2600);
+  }
 
   window.chrome.webview.postMessage(JSON.stringify({type:'ready'}));
 </script>

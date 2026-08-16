@@ -22,6 +22,7 @@ public sealed class LibraryFileSource : IDisposable
     public string FilePath => _path;
     private readonly FileSystemWatcher? _watcher;
     private readonly OrbStateController? _orb;
+    private readonly List<TargetSpec> _extraTargets = new();
     private readonly object _gate = new();
 
     private MonitorEngine _engine = null!;
@@ -83,14 +84,31 @@ public sealed class LibraryFileSource : IDisposable
         engine.Acknowledge(word, context);
     }
 
+    /// <summary>
+    /// 本地调试叠加监控目标（仅开发/自测用，生产应留空）：与词库 metadata 白名单取并集判定。
+    /// 设置后即时重建引擎使其生效（热重载路径同样会包含这些叠加目标）。
+    /// </summary>
+    public IEnumerable<string> ExtraTargetExes
+    {
+        set
+        {
+            _extraTargets.Clear();
+            foreach (var s in (value ?? Enumerable.Empty<string>())
+                         .Select(x => x.Trim()).Where(x => x.Length > 0))
+                _extraTargets.Add(new TargetSpec { ExeName = s });
+            Reload();
+        }
+    }
+
     /// <summary>手动触发热重载（测试或菜单「立即同步」调用）。</summary>
     public void Reload()
     {
         var exists = File.Exists(_path);
         var lib = WordLibrary.LoadFromFile(_path);
         var matcher = new AhoCorasickMatcher(lib.Words);
-        // 配置锁定：监控目标从词库 metadata 读取（管理员下发，客户端只读）
-        var engine = new MonitorEngine(matcher, new AlertDedup(_cooldown), lib.Metadata.Targets);
+        // 配置锁定：监控目标从词库 metadata 读取（管理员下发，客户端只读），叠加本地调试目标
+        var targets = lib.Metadata.Targets.Concat(_extraTargets).ToList();
+        var engine = new MonitorEngine(matcher, new AlertDedup(_cooldown), targets);
         var status = new LibraryStatus(exists, lib.NewerSchemaDetected);
 
         lock (_gate)

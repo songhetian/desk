@@ -15,7 +15,15 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        var path = Path.Combine(AppContext.BaseDirectory, LibraryFile);
+        // 运行环境缺失兜底：自带 .NET 运行时，真正可能缺的是 WebView2 运行时（系统级组件）。
+        if (!WebRuntime.IsWebView2Available())
+        {
+            Application.Run(new RuntimeMissingForm("Microsoft Edge WebView2 运行时",
+                "https://developer.microsoft.com/zh-cn/microsoft-edge/webview2/"));
+            return;
+        }
+
+        var path = Path.Combine(AppPaths.BaseDirectory, LibraryFile);
         Application.Run(new MainForm(path));
     }
 }

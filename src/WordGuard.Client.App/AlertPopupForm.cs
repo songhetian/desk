@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Text.Json;
 using System.Windows.Forms;
 using WordGuard.Client;
 using WordGuard.Core;
@@ -6,104 +7,129 @@ using WordGuard.Core;
 namespace WordGuard.Client.App;
 
 /// <summary>
-/// 告警弹窗（PRD：弹窗含「确认」按钮；非阻塞；60s 未确认记「未确认（超时）」）。
-/// 用 RichTextBox 把触发内容中的违禁词标红（高亮仅限本工具界面，不覆盖目标软件窗口，见 ADR 0003）。
-/// 确认/超时通过事件上抛，由捕获宿主统一写审计日志与去重确认。
+/// 告警弹窗（现代化）：WebView2 渲染 <c>web/alert-popup.html</c>，盾牌徽标 + 命中词汇卡 + 来源/分类 + 触发内容高亮，
+/// 底部「忽略本次 / 查看详情 / 已知悉」。非阻塞、置顶、右下角浮出；60s 未确认触发 <see cref="TimedOut"/>（记「未确认（超时）」）。
+///
+/// <para>三个按钮语义（由捕获宿主统一写审计与去重确认）：</para>
+/// <list type="bullet">
+///   <item>已知悉 → <see cref="Confirmed"/>（记「客服已确认」+ 确认去重）；</item>
+///   <item>忽略本次 → <see cref="Ignored"/>（记「已忽略」）；</item>
+///   <item>查看详情 → <see cref="DetailsRequested"/>（打开审计日志查看器，记「已查看」）。</item>
+/// </list>
 /// </summary>
-public sealed class AlertPopupForm : Form
+public sealed class AlertPopupForm : HtmlWindow
 {
-    /// <summary>用户点击「确认」。</summary>
+    /// <summary>用户点击「已知悉」。</summary>
     public event Action? Confirmed;
+
+    /// <summary>用户点击「忽略本次」或 Esc。</summary>
+    public event Action? Ignored;
+
+    /// <summary>用户点击「查看详情」。</summary>
+    public event Action? DetailsRequested;
 
     /// <summary>60 秒超时未确认。</summary>
     public event Action? TimedOut;
 
     private readonly System.Windows.Forms.Timer _timeout = new() { Interval = 60_000 };
+    private readonly AlertEvent _evt;
+    private readonly string _content;
+    private readonly string _target;
+    private readonly string _windowTitle;
+    private readonly string _category;
+    private bool _resolved;
 
-    public AlertPopupForm(AlertEvent evt, string content, string target, string windowTitle)
+    public AlertPopupForm(AlertEvent evt, string content, string target, string windowTitle, string category)
+        : base("alert-popup.html")
     {
+        _evt = evt;
+        _content = content;
+        _target = target;
+        _windowTitle = windowTitle;
+        _category = category;
+
         Text = "违禁词提醒";
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         TopMost = true;
-        Size = new Size(420, 280);
         StartPosition = FormStartPosition.Manual;
+        ShowIcon = false;
+        BackColor = Color.Magenta;      // 分层窗口（WebView2 透明背景的前提）
+        TransparencyKey = Color.Magenta;
+        Size = new Size(404, 352);
+
         var area = Screen.GetWorkingArea(Point.Empty);
-        Location = new Point(area.Right - Width - 20, area.Bottom - Height - 20);
+        Location = new Point(area.Right - Width - 16, area.Bottom - Height - 16);
 
-        var header = new Label
-        {
-            Left = 12, Top = 10, Width = 380,
-            Text = $"在 {target} 检测到 {evt.AlertWords.Count} 个违禁词（{SeverityText(evt.TopSeverity)}）",
-            Font = new Font(Font, FontStyle.Bold),
-        };
-        Controls.Add(header);
-
-        var box = new RichTextBox
-        {
-            Left = 12, Top = 40, Width = 380, Height = 130,
-            ReadOnly = true, Text = content,
-            BackColor = Color.White,
-        };
-        Highlight(box, evt.AlertWords);
-        Controls.Add(box);
-
-        var channels = new Label
-        {
-            Left = 12, Top = 178, Width = 380,
-            Text = "触发通道：" + string.Join("、",
-                evt.Channels.Select(c => c switch
-                {
-                    AlertChannel.Popup => "弹窗",
-                    AlertChannel.Sound => "声音",
-                    AlertChannel.Highlight => "高亮",
-                    _ => c.ToString(),
-                })),
-        };
-        Controls.Add(channels);
-
-        var confirm = new Button
-        {
-            Left = 300, Top = 214, Width = 92, Height = 32, Text = "我已知晓（确认）",
-            BackColor = Color.FromArgb(70, 130, 255), ForeColor = Color.White,
-        };
-        confirm.Click += (_, _) => { _timeout.Stop(); Confirmed?.Invoke(); Close(); };
-        Controls.Add(confirm);
-
-        _timeout.Tick += (_, _) => { _timeout.Stop(); TimedOut?.Invoke(); Close(); };
+        _timeout.Tick += (_, _) => { _timeout.Stop(); Resolve("timeout"); };
         _timeout.Start();
     }
 
-    private static void Highlight(RichTextBox box, IReadOnlyList<string> words)
+    protected override bool TransparentBackground => true;
+
+    /// <summary>弹窗是次要 UI：WebView2 初始化失败时静默关闭即可（审计已记录命中），不弹系统错误框。</summary>
+    protected override void OnWebView2Failed(string message) => Resolve("timeout");
+
+    protected override void OnJsMessage(string json)
     {
-        box.SelectionStart = 0;
-        box.SelectionLength = 0;
-        foreach (var w in words)
+        string? type = null, action = null;
+        try
         {
-            if (string.IsNullOrEmpty(w)) continue;
-            var idx = 0;
-            while ((idx = box.Text.IndexOf(w, idx, StringComparison.OrdinalIgnoreCase)) >= 0)
-            {
-                box.SelectionStart = idx;
-                box.SelectionLength = w.Length;
-                box.SelectionColor = Color.Red;
-                box.SelectionBackColor = Color.FromArgb(255, 255, 200, 200);
-                idx += w.Length;
-            }
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            type = root.TryGetProperty("type", out var t) ? t.GetString() : null;
+            if (root.TryGetProperty("action", out var a)) action = a.GetString();
         }
-        box.SelectionStart = 0;
-        box.SelectionLength = 0;
-        box.SelectionColor = Color.Black;
+        catch { /* 非 JSON：忽略 */ }
+
+        switch (type)
+        {
+            case "ready": PushInit(); break;
+            case "popupAction":
+                Resolve(action);
+                break;
+        }
     }
 
-    private static string SeverityText(Severity s) => s switch
+    private void PushInit()
     {
-        Severity.High => "高",
-        Severity.Medium => "中",
-        _ => "低",
-    };
+        PostToJs(Json(new
+        {
+            type = "init",
+            severity = _evt.TopSeverity switch
+            {
+                Severity.High => "hi",
+                Severity.Medium => "mid",
+                _ => "lo",
+            },
+            word = _evt.AlertWords.FirstOrDefault() ?? "",
+            words = _evt.AlertWords,
+            target = _target,
+            windowTitle = _windowTitle,
+            category = _category,
+            content = _content,
+        }));
+    }
 
-    protected override void OnFormClosed(FormClosedEventArgs e) => _timeout.Dispose();
+    /// <summary>把弹窗结局统一收口：停止计时器、只触发一次对应事件并关闭（超时=未确认）。</summary>
+    private void Resolve(string? action)
+    {
+        if (_resolved) return;
+        _resolved = true;
+        _timeout.Stop();
+        switch (action)
+        {
+            case "ack": Confirmed?.Invoke(); break;
+            case "ignore": Ignored?.Invoke(); break;
+            case "details": DetailsRequested?.Invoke(); break;
+            default: TimedOut?.Invoke(); break;   // "timeout" 或未知 → 未确认（超时）
+        }
+        Close();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        _timeout.Dispose();
+        base.OnFormClosed(e);
+    }
 }

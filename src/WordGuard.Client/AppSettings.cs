@@ -1,16 +1,18 @@
+using System.Collections.Generic;
 using System.Text.Json;
+using WordGuard.Core;
 
 namespace WordGuard.Client;
 
 /// <summary>
-/// 客户端本地运行配置：仅保存「不可由词库下发的本机运行项」。
+/// 客户端本地运行配置。
 ///
-/// <para>设计约束（grill-me 2026-08-16 对齐）：监控目标 / 三通道开关 / 声音路径 / 去重窗口 / 日志保留
-/// 已由管理员在 Studio 锁定、随 <c>wordlib.json</c> 的 metadata 段下发，客户端只读。
-/// 因此 AppSettings 不再承载这些「部署配置」，员工无法在本地篡改监控行为。</para>
+/// <para>本机部署配置：监控目标 / 三通道开关 / 去重窗口 / 日志保留，管理员可在 Studio 随
+/// <c>wordlib.json</c> 下发默认值，但<b>本端可在「监控状态」面板中覆盖并保存</b>（<see cref="Deployment"/>）。
+/// 覆盖段为空（null）时沿用下发默认值；一旦本端保存，则以本端为准、立即生效。</para>
 ///
 /// <para>保留字段：词库文件路径（员工机器上 wordlib.json 的摆放位置，可由部署脚本决定）；
-/// 以及当词库 metadata 缺失时的兜底默认值（保证旧文件 / 缺省环境也能启动）。</para>
+/// 以及本地调试监控目标（仅开发/自测用，生产应留空）。</para>
 /// </summary>
 public sealed class AppSettings
 {
@@ -18,16 +20,47 @@ public sealed class AppSettings
     public string WordLibraryPath { get; set; } = "wordlib.json";
 
     /// <summary>
-    /// 兜底：词库 metadata 缺失时的告警去重窗口（秒）。默认 30s。
-    /// 正常情况以词库 metadata 为准；仅当词库文件无 metadata 段时使用。
+    /// 本地调试监控目标（仅开发/自测用，生产应留空）：逗号分隔的进程 EXE 名，如 <c>"notepad.exe,chrome.exe"</c>。
+    /// 这些目标<b>不写入</b>管理员下发的 wordlib.json，仅在本机叠加生效，方便验证监控管线。
+    /// </summary>
+    public string DebugMonitorTargets { get; set; } = "";
+
+    /// <summary>
+    /// 本机部署配置覆盖（客户端可编辑）。为 null 时表示「沿用管理端下发的默认值」；
+    /// 一旦在客户端「监控状态」面板保存，即以本端配置为准、立即生效。
+    /// </summary>
+    public ClientDeployment? Deployment { get; set; }
+
+    /// <summary>
+    /// 兜底：词库 metadata 缺失时的告警去重窗口（秒）。默认 30s。（正常情况以生效配置为准。）
     /// </summary>
     public int CooldownSeconds { get; set; } = 30;
 
     /// <summary>
-    /// 兜底：词库 metadata 缺失时的审计日志本地保留天数。默认 30 天。
-    /// 正常情况以词库 metadata 为准。
+    /// 兜底：词库 metadata 缺失时的审计日志本地保留天数。默认 30 天。（正常情况以生效配置为准。）
     /// </summary>
     public int LogRetentionDays { get; set; } = 30;
+
+    /// <summary>
+    /// 把本机覆盖配置应用到生效的部署元数据上：覆盖段非空的项逐项覆盖默认值。
+    /// 用于让客户端保存的配置真正影响监控目标与告警行为。
+    /// </summary>
+    public static void ApplyOverrides(LibraryMetadata m, AppSettings settings)
+    {
+        var d = settings.Deployment;
+        if (d is null) return;
+        if (d.MonitorTargets.Count > 0)
+            m.Targets = d.MonitorTargets
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 0)
+                .Select(t => new TargetSpec { ExeName = t })
+                .ToList();
+        if (d.AlertPopup.HasValue) m.AlertPopup = d.AlertPopup.Value;
+        if (d.AlertSound.HasValue) m.AlertSound = d.AlertSound.Value;
+        if (d.AlertHighlight.HasValue) m.AlertHighlight = d.AlertHighlight.Value;
+        if (d.CooldownSeconds.HasValue) m.CooldownSeconds = d.CooldownSeconds.Value;
+        if (d.LogRetentionDays.HasValue) m.LogRetentionDays = d.LogRetentionDays.Value;
+    }
 
     /// <summary>从文件加载配置。文件不存在或内容为空/损坏时返回<b>默认值</b>（不抛异常），使客户端总能启动。</summary>
     public static AppSettings Load(string path)
@@ -69,4 +102,29 @@ public sealed class AppSettings
         File.WriteAllText(tmp, ToJson());
         File.Move(tmp, path, overwrite: true);
     }
+}
+
+/// <summary>
+/// 本机部署配置覆盖段（客户端「监控状态」面板可编辑）。所有字段均为可空：
+/// 为 null 表示该顶「沿用管理端下发的默认值」；一旦本端填写并保存，即以本端值为准。
+/// </summary>
+public sealed class ClientDeployment
+{
+    /// <summary>监控目标进程名列表（每行/每项一个 EXE 名，如 "WeChat.exe"）。空列表=沿用下发。</summary>
+    public List<string> MonitorTargets { get; set; } = new();
+
+    /// <summary>弹窗提醒开关（null=沿用下发）。</summary>
+    public bool? AlertPopup { get; set; }
+
+    /// <summary>声音提醒开关（null=沿用下发）。</summary>
+    public bool? AlertSound { get; set; }
+
+    /// <summary>自有界面高亮开关（null=沿用下发）。</summary>
+    public bool? AlertHighlight { get; set; }
+
+    /// <summary>告警去重窗口（秒，null=沿用下发）。</summary>
+    public int? CooldownSeconds { get; set; }
+
+    /// <summary>审计日志本地保留天数（null=沿用下发）。</summary>
+    public int? LogRetentionDays { get; set; }
 }

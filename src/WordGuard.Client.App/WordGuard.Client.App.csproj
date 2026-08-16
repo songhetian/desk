@@ -10,6 +10,7 @@
     <RootNamespace>WordGuard.Client.App</RootNamespace>
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ApplicationIcon>WordGuard.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,8 @@
 
   <ItemGroup>
     <None Include="web\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="wordguard.settings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="alert.wav" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

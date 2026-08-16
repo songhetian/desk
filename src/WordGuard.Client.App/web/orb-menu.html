@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:transparent;overflow:hidden;font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei UI","Microsoft YaHei",sans-serif}
+  body{display:flex;align-items:flex-start;justify-content:flex-start;padding:4px;user-select:none;-webkit-user-select:none}
+
+  .menu{width:100%;background:#fff;border:1px solid #E2E8F0;border-radius:14px;
+    box-shadow:0 12px 32px rgba(15,23,42,.18),0 2px 8px rgba(15,23,42,.08);
+    overflow:hidden;animation:pop .16s ease-out}
+
+  @keyframes pop{from{opacity:0;transform:scale(.92) translateY(-5px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){.menu{animation:none}}
+
+  .head{display:flex;align-items:center;gap:10px;padding:13px 14px;
+    background:linear-gradient(135deg,#2563EB,#1E40AF);color:#fff}
+  .head .logo{width:30px;height:30px;flex:0 0 auto;border-radius:8px;background:rgba(255,255,255,.16);
+    display:flex;align-items:center;justify-content:center}
+  .head .logo svg{width:17px;height:17px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+  .head .t{line-height:1.25}
+  .head .t b{display:block;font-size:14px;font-weight:700;letter-spacing:.2px}
+  .head .t span{display:block;font-size:10.5px;opacity:.82;letter-spacing:.5px}
+
+  .item{display:flex;align-items:center;gap:11px;padding:10px 14px;font-size:13px;color:#1E293B;
+    cursor:default;transition:background .12s,color .12s;outline:none}
+  .item svg{width:16px;height:16px;flex:0 0 auto;color:#64748B;transition:color .12s}
+  .item:hover,.item:focus-visible{background:#EFF6FF;color:#1D4ED8}
+  .item:hover svg,.item:focus-visible svg{color:#2563EB}
+  .item:active{background:#DBEAFE}
+  .sep{height:1px;background:#EEF2F7;margin:2px 12px}
+  .item.danger{color:#DC2626}
+  .item.danger svg{color:#EF4444}
+  .item.danger:hover{background:#FEF2F2;color:#B91C1C}
+  .item.danger:hover svg{color:#DC2626}
+</style>
+</head>
+<body>
+<div class="menu" role="menu" aria-label="WordGuard 悬浮球菜单">
+  <div class="head">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div class="t"><b>WordGuard</b><span>客服合规卫士 · 实时监控中</span></div>
+  </div>
+
+  <div class="item" role="menuitem" tabindex="0" data-action="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span>状态面板</span>
+  </div>
+  <div class="item" role="menuitem" tabindex="0" data-action="log">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+    <span>监控日志</span>
+  </div>
+  <div class="item" role="menuitem" tabindex="0" data-action="simulate">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    <span>模拟告警测试</span>
+  </div>
+  <div class="sep"></div>
+  <div class="item danger" role="menuitem" tabindex="0" data-action="exit">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    <span>退出 WordGuard</span>
+  </div>
+</div>
+
+<script>
+  const send = obj => window.chrome.webview.postMessage(JSON.stringify(obj));
+
+  document.querySelectorAll('.item').forEach(el => {
+    const fire = () => send({type:'menu', action: el.dataset.action});
+    el.addEventListener('click', fire);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') send({type:'close'}); });
+  window.chrome.webview.postMessage(JSON.stringify({type:'menuReady'}));
+</script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WordGuard 客户端 — 设计 Demo v2</title>
+<style>
+  :root{
+    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
+    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
+    --bg:#EEF2F7; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
+    --hi:#DC2626; --mid:#D97706; --lo:#2563EB; --ok:#059669;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 6px 18px rgba(15,23,42,.06);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,"Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+
+  .topbar{height:50px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;
+    padding:0 16px;gap:12px;position:sticky;top:0;z-index:20;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;}
+  .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(160deg,var(--blue),var(--blue-d));
+    display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35);}
+  .spacer{flex:1;}
+  .status-pill{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ok);
+    background:#ECFDF5;border:1px solid #A7F3D0;padding:5px 11px;border-radius:20px;font-weight:600;}
+  .status-pill .d{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(5,150,105,.18);}
+  .btn-ghost{border:1px solid var(--line-d);background:#fff;color:var(--sub);padding:6px 12px;border-radius:7px;font-size:13px;cursor:pointer;}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+
+  .shell{display:flex;min-height:calc(100vh - 50px);}
+  .nav{width:200px;background:#fff;border-right:1px solid var(--line);padding:14px 10px;flex-shrink:0;}
+  .nav .grp{font-size:11px;letter-spacing:.05em;color:var(--mut);text-transform:uppercase;padding:12px 10px 6px;font-weight:600;}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--sub);
+    text-decoration:none;font-size:13.5px;cursor:pointer;margin-bottom:2px;}
+  .nav a:hover{background:var(--bg);color:var(--ink);}
+  .nav a.active{background:var(--blue-l);color:var(--blue-d);font-weight:600;}
+  .nav a .ic{width:18px;height:18px;}
+  .nav .foot{margin-top:18px;padding:12px 10px;border-top:1px solid var(--line);font-size:12px;color:var(--mut);}
+
+  .main{flex:1;padding:24px 28px;overflow:auto;}
+  .page-head{margin-bottom:18px;}
+  .page-head h1{font-size:20px;margin:0 0 4px;font-weight:600;}
+  .page-head p{margin:0;color:var(--sub);font-size:13px;}
+  .hide{display:none!important;}
+
+  .grid{display:grid;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:18px;box-shadow:var(--shadow);}
+  .card h3{margin:0 0 4px;font-size:15px;}
+  .card .hint{color:var(--mut);font-size:12.5px;margin:0 0 14px;}
+
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px;box-shadow:var(--shadow);}
+  .stat .k{font-size:12.5px;color:var(--mut);margin-bottom:6px;}
+  .stat .v{font-size:24px;font-weight:700;letter-spacing:-.02em;}
+  .stat .v.blue{color:var(--blue);} .stat .v.red{color:var(--hi);} .stat .v.green{color:var(--ok);}
+
+  .two{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+  .feed{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow:auto;}
+  .feed .item{display:flex;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+  .feed .sev-bar{width:4px;border-radius:4px;flex-shrink:0;}
+  .feed .meta{flex:1;min-width:0;}
+  .feed .meta b{font-size:13.5px;}
+  .feed .meta .sub{font-size:12px;color:var(--mut);margin-top:2px;}
+  .feed .tag{font-size:11px;padding:2px 8px;border-radius:6px;align-self:flex-start;}
+  .feed .ai{width:30px;height:30px;border-radius:8px;background:var(--line);display:grid;place-items:center;font-weight:700;color:var(--sub);flex-shrink:0;}
+
+  .app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .app{border:1px solid var(--line);border-radius:11px;padding:13px;display:flex;align-items:center;gap:11px;cursor:pointer;background:#fff;transition:.12s;}
+  .app:hover{border-color:var(--blue);}
+  .app.on{border-color:var(--blue);background:var(--blue-l);}
+  .app .ai{width:34px;height:34px;border-radius:9px;background:var(--line);display:grid;place-items:center;font-weight:700;color:var(--sub);flex-shrink:0;}
+  .app.on .ai{background:var(--blue);color:#fff;}
+  .app .nm{font-size:13.5px;font-weight:600;}
+  .app .st{font-size:11.5px;color:var(--mut);}
+  .app .chk{margin-left:auto;width:20px;height:20px;border-radius:6px;border:2px solid var(--line-d);display:grid;place-items:center;}
+  .app.on .chk{background:var(--blue);border-color:var(--blue);}
+  .app.on .chk svg{display:block;} .app .chk svg{display:none;}
+
+  .field{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);}
+  .field:last-child{border-bottom:none;}
+  .field .lbl{font-size:13.5px;} .field .lbl small{display:block;color:var(--mut);font-size:12px;}
+  .switch{position:relative;width:38px;height:22px;display:inline-block;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--line-d);border-radius:20px;transition:.2s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+  .switch input:checked + .slider{background:var(--blue);}
+  .switch input:checked + .slider:before{transform:translateX(16px);}
+
+  .btn{border:none;background:var(--blue);color:#fff;padding:9px 15px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+  .btn:hover{background:var(--blue-d);}
+  .btn.sec{background:#fff;color:var(--sub);border:1px solid var(--line-d);}
+  .btn.sec:hover{border-color:var(--blue);color:var(--blue);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;opacity:0;transition:.25s;z-index:200;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ===== 悬浮球演示 ===== */
+  .orb-stage{position:relative;height:300px;background:radial-gradient(circle at 50% 40%,#FFFFFF,#E2E8F0);border-radius:13px;border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+  .orb{width:84px;height:84px;border-radius:50%;position:relative;cursor:grab;
+    background:radial-gradient(circle at 32% 28%,#60A5FA,#2563EB 60%,#1E40AF);
+    box-shadow:0 8px 22px rgba(37,99,235,.4),inset 0 2px 6px rgba(255,255,255,.4);
+    display:grid;place-items:center;color:#fff;animation:breathe 3s ease-in-out infinite;}
+  .orb.alert{background:radial-gradient(circle at 32% 28%,#F87171,#DC2626 60%,#991B1B);box-shadow:0 8px 22px rgba(220,38,38,.45),inset 0 2px 6px rgba(255,255,255,.4);animation:pulse 1s ease-in-out infinite;}
+  .orb.offline{background:radial-gradient(circle at 32% 28%,#CBD5E1,#94A3B8 60%,#64748B);box-shadow:0 8px 22px rgba(100,116,139,.35);animation:none;}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  @keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 8px 22px rgba(220,38,38,.45)}50%{transform:scale(1.1);box-shadow:0 8px 30px rgba(220,38,38,.7)}}
+  .orb svg{width:38px;height:38px;}
+  .orb-hint{font-size:12.5px;color:var(--sub);}
+  .orb-states{display:flex;gap:10px;}
+  .orb-states button{padding:6px 12px;border:1px solid var(--line-d);background:#fff;border-radius:8px;cursor:pointer;font-size:12.5px;color:var(--sub);}
+  .orb-states button:hover{border-color:var(--blue);color:var(--blue);}
+
+  /* ===== 命中拦截弹窗（现代化自定义，非系统默认） ===== */
+  .alert-mask{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:150;backdrop-filter:blur(2px);}
+  .alert-mask.show{display:flex;}
+  .alert-pop{width:384px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,.35);animation:pop .18s ease;}
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  .alert-pop .head{display:flex;gap:14px;padding:20px 22px 12px;align-items:flex-start;}
+  .alert-pop .ic-badge{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex-shrink:0;}
+  .alert-pop .ic-badge.hi{background:#FEF2F2;color:var(--hi);} .alert-pop .ic-badge.mid{background:#FFFBEB;color:var(--mid);} .alert-pop .ic-badge.lo{background:var(--blue-l);color:var(--lo);}
+  .alert-pop .ttl{font-size:16px;font-weight:600;}
+  .alert-pop .sub{color:var(--mut);font-size:12.5px;margin-top:2px;}
+  .alert-pop .body{padding:0 22px 8px;}
+  .alert-pop .wbox{background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:12px;}
+  .alert-pop .wbox .lab{font-size:12px;color:var(--mut);}
+  .alert-pop .wbox .val{font-size:18px;font-weight:700;margin-top:2px;}
+  .alert-pop .kv{display:flex;gap:10px;font-size:13px;}
+  .alert-pop .kv>div{flex:1;}
+  .alert-pop .kv .lab{color:var(--mut);font-size:12px;}
+  .alert-pop .kv b{display:block;margin-top:1px;}
+  .alert-pop .foot{padding:14px 22px 18px;display:flex;gap:9px;justify-content:flex-end;border-top:1px solid var(--line);margin-top:14px;background:#F8FAFC;}
+
+  /* ===== 右键菜单（精致化） ===== */
+  .ctx-demo{position:relative;height:240px;border:1px dashed var(--line-d);border-radius:13px;background:#F8FAFC;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px;margin:18px 28px;}
+  .ctx{position:absolute;min-width:208px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 34px rgba(15,23,42,.20);padding:6px;display:none;z-index:50;animation:ctxIn .12s ease;}
+  @keyframes ctxIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .ctx .ctx-head{padding:8px 11px 7px;font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.04em;border-bottom:1px solid var(--line);margin-bottom:4px;}
+  .ctx .ci{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;font-size:13.5px;color:var(--ink);cursor:pointer;}
+  .ctx .ci:hover{background:var(--blue-l);color:var(--blue-d);}
+  .ctx .ci svg{width:16px;height:16px;color:var(--sub);}
+  .ctx .ci:hover svg{color:var(--blue-d);}
+  .ctx .ci.danger{color:var(--hi);} .ctx .ci.danger:hover{background:#FEF2F2;} .ctx .ci.danger:hover svg{color:var(--hi);}
+  .ctx .sep{height:1px;background:var(--line);margin:5px 4px;}
+
+  .foot-note{margin-top:18px;color:var(--mut);font-size:12px;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span>WordGuard 客服合规卫士</div>
+    <div class="spacer"></div>
+    <div class="status-pill"><span class="d"></span> 实时监控中</div>
+    <button class="btn-ghost" onclick="toast('已是最新版本 v2.3.0','ok')">检查更新</button>
+  </div>
+
+  <div class="shell">
+    <nav class="nav">
+      <div class="grp">概览</div>
+      <a class="active" data-page="home"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>监控主页</a>
+      <a data-page="deploy"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0L8 7m4-4l4 4"/><rect x="4" y="15" width="16" height="5" rx="1.5"/></svg>本机部署</a>
+      <a data-page="orb"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>悬浮球</a>
+      <a data-page="logs"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>监控日志</a>
+      <div class="foot">客户端 v2.3.0<br>本机策略覆盖管理端默认</div>
+    </nav>
+
+    <main class="main">
+      <!-- 主页 -->
+      <section id="page-home">
+        <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+          <div><h1>监控主页</h1><p>实时掌握当前客服会话的合规状态。</p></div>
+          <button class="btn" onclick="showAlert('hi','绝对保过','微信','虚假承诺')">预览命中弹窗</button>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="k">监控中软件</div><div class="v blue">3</div></div>
+          <div class="stat"><div class="k">今日命中</div><div class="v red">14</div></div>
+          <div class="stat"><div class="k">已拦截</div><div class="v green">11</div></div>
+          <div class="stat"><div class="k">运行时长</div><div class="v">6h22m</div></div>
+        </div>
+        <div class="two">
+          <div class="card">
+            <h3>最近命中</h3><p class="hint">实时捕获的违禁词命中记录。</p>
+            <div class="feed">
+              <div class="item"><div class="sev-bar" style="background:var(--hi)"></div><div class="meta"><b>绝对保过</b><div class="sub">微信 · 14:32 · 命中「虚假承诺」</div></div><span class="tag" style="background:#FEF2F2;color:var(--hi)">高</span></div>
+              <div class="item"><div class="sev-bar" style="background:var(--mid)"></div><div class="meta"><b>加我微信私下聊</b><div class="sub">QQ · 14:28 · 命中「诱导私下交易」</div></div><span class="tag" style="background:#FFFBEB;color:var(--mid)">中</span></div>
+              <div class="item"><div class="sev-bar" style="background:var(--lo)"></div><div class="meta"><b>全网第一</b><div class="sub">企业微信 · 14:10 · 命中「绝对化用语」</div></div><span class="tag" style="background:var(--blue-l);color:var(--lo)">低</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>当前监控目标</h3><p class="hint">本机生效的监控软件。</p>
+            <div class="feed">
+              <div class="item"><div class="ai">微</div><div class="meta"><b>微信</b><div class="sub">监控中</div></div></div>
+              <div class="item"><div class="ai">Q</div><div class="meta"><b>QQ</b><div class="sub">监控中</div></div></div>
+              <div class="item"><div class="ai">企</div><div class="meta"><b>企业微信</b><div class="sub">监控中</div></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 本机部署 -->
+      <section id="page-deploy" class="hide">
+        <div class="page-head"><h1>本机部署</h1><p>选择需要监控的软件并配置告警方式（GUI 选择，无需手动输入路径）。</p></div>
+        <div class="grid">
+          <div class="card">
+            <h3>监控目标软件</h3><p class="hint">点击卡片即可加入 / 移出监控。</p>
+            <div class="app-grid" id="appGrid"></div>
+            <button class="btn sec" style="margin-top:12px" onclick="toast('已打开系统程序选择器','ok')">+ 从本机选择程序…</button>
+          </div>
+          <div class="card">
+            <h3>告警方式</h3><p class="hint">命中违禁词时的提醒形式。</p>
+            <div class="field"><div class="lbl">弹窗提醒<small>命中时弹出下方现代化拦截窗口</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div class="field"><div class="lbl">声音提醒<small>命中时播放默认提示音</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div class="field"><div class="lbl">界面高亮<small>在客服窗口高亮命中词</small></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
+            <button class="btn sec" style="margin-top:8px" onclick="playDefaultSound()">试听默认提示音</button>
+          </div>
+          <div class="card">
+            <h3>策略</h3>
+            <div class="field"><div class="lbl">去重窗口</div><select style="width:120px;padding:8px;border:1px solid var(--line-d);border-radius:8px"><option>10秒</option><option selected>30秒</option><option>60秒</option></select></div>
+            <div class="field"><div class="lbl">日志保留</div><select style="width:120px;padding:8px;border:1px solid var(--line-d);border-radius:8px"><option>7天</option><option selected>30天</option><option>90天</option></select></div>
+            <div style="margin-top:14px;display:flex;gap:10px">
+              <button class="btn" onclick="toast('已保存并立即生效','ok')">保存并生效</button>
+              <button class="btn sec" onclick="toast('已恢复管理端默认值','ok')">恢复默认</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 悬浮球 -->
+      <section id="page-orb" class="hide">
+        <div class="page-head"><h1>悬浮球</h1><p>常驻桌面的监控指示器，可拖拽移动，右键打开菜单。</p></div>
+        <div class="card">
+          <div class="orb-stage">
+            <div class="orb" id="orbDemo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <div class="orb-hint">此为桌面实际悬浮球预览（可拖拽，右键查看菜单）</div>
+            <div class="orb-states">
+              <button onclick="setOrb('monitor')">监控中</button>
+              <button onclick="setOrb('alert')">告警</button>
+              <button onclick="setOrb('offline')">离线</button>
+            </div>
+          </div>
+        </div>
+        <div class="foot-note">真实悬浮球：拖拽标题区移动；单击查看状态；右键打开操作菜单（状态 / 日志 / 部署 / 模拟测试 / 退出）。</div>
+      </section>
+
+      <!-- 日志 -->
+      <section id="page-logs" class="hide">
+        <div class="page-head"><h1>监控日志</h1><p>本地审计记录，按时间倒序。</p></div>
+        <div class="card">
+          <div class="feed">
+            <div class="item"><div class="sev-bar" style="background:var(--hi)"></div><div class="meta"><b>绝对保过</b><div class="sub">微信 · 2026-08-16 14:32:08 · 高 · 已拦截</div></div></div>
+            <div class="item"><div class="sev-bar" style="background:var(--mid)"></div><div class="meta"><b>加我微信私下聊</b><div class="sub">QQ · 2026-08-16 14:28:51 · 中 · 已提醒</div></div></div>
+            <div class="item"><div class="sev-bar" style="background:var(--lo)"></div><div class="meta"><b>全网第一</b><div class="sub">企业微信 · 2026-08-16 14:10:33 · 低 · 已记录</div></div></div>
+            <div class="item"><div class="sev-bar" style="background:var(--lo)"></div><div class="meta"><b>全网最低价</b><div class="sub">微信 · 2026-08-16 13:55:02 · 低 · 已记录</div></div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 命中拦截弹窗（现代化自定义） -->
+  <div class="alert-mask" id="alertMask">
+    <div class="alert-pop">
+      <div class="head">
+        <div class="ic-badge hi" id="aBadge"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+        <div><div class="ttl" id="aTtl">高危违禁词命中</div><div class="sub">检测到禁止使用词汇，请立即纠正对话内容</div></div>
+      </div>
+      <div class="body">
+        <div class="wbox"><div class="lab">命中词汇</div><div class="val" id="aWord">绝对保过</div></div>
+        <div class="kv">
+          <div><div class="lab">来源窗口</div><b id="aApp">微信</b></div>
+          <div><div class="lab">所属分类</div><b id="aCat">虚假承诺</b></div>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="btn sec" onclick="closeAlert()">忽略本次</button>
+        <button class="btn sec" onclick="closeAlert()">查看详情</button>
+        <button class="btn" onclick="closeAlert()">已知悉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右键菜单 演示 -->
+  <div class="ctx-demo" id="ctxDemo">
+    右键点击下方区域，预览优化后的悬浮球右键菜单样式
+    <div class="ctx" id="ctxMenu">
+      <div class="ctx-head">WordGuard · 客服合规卫士</div>
+      <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>监控状态</div>
+      <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8"/></svg>监控日志</div>
+      <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0L8 7m4-4l4 4"/><rect x="4" y="15" width="16" height="5" rx="1.5"/></svg>本机部署</div>
+      <div class="sep"></div>
+      <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>模拟告警测试</div>
+      <div class="sep"></div>
+      <div class="ci danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>退出 WordGuard</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const $=s=>document.querySelector(s);
+  document.querySelectorAll('.nav a').forEach(a=>a.onclick=()=>{
+    document.querySelectorAll('.nav a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('main section').forEach(s=>s.classList.add('hide'));
+    $('#page-'+a.dataset.page).classList.remove('hide');
+  });
+
+  const APPS=[{n:'微信',e:'WeChat.exe',on:true},{n:'QQ',e:'QQ.exe',on:true},{n:'企业微信',e:'WXWork.exe',on:true},{n:'钉钉',e:'DingTalk.exe',on:false},{n:'Chrome',e:'chrome.exe',on:false},{n:'Edge',e:'msedge.exe',on:false},{n:'记事本',e:'notepad.exe',on:false}];
+  function renderApps(){
+    const g=$('#appGrid');g.innerHTML='';
+    APPS.forEach(a=>{
+      const d=document.createElement('div');d.className='app'+(a.on?' on':'');
+      d.innerHTML=`<div class="ai">${a.n[0]}</div><div><div class="nm">${a.n}</div><div class="st">${a.on?'监控中':'未监控'}</div></div>
+        <div class="chk"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></div>`;
+      d.onclick=()=>{a.on=!a.on;renderApps();toast(a.on?('已加入：'+a.n):('已移除：'+a.n),'ok');};
+      g.appendChild(d);
+    });
+  }
+  renderApps();
+
+  function setOrb(s){const o=$('#orbDemo');o.className='orb'+(s==='monitor'?'':(' '+s));}
+
+  // 命中拦截弹窗
+  function showAlert(sev,word,app,cat){
+    const m=$('#alertMask');
+    $('#aWord').textContent=word;$('#aApp').textContent=app;$('#aCat').textContent=cat;
+    const badge=$('#aBadge');badge.className='ic-badge '+sev;
+    $('#aTtl').textContent= sev==='hi'?'高危违禁词命中':sev==='mid'?'违禁词命中提醒':'低危词汇提示';
+    m.classList.add('show');
+  }
+  function closeAlert(){$('#alertMask').classList.remove('show');}
+  $('#alertMask').addEventListener('click',e=>{if(e.target===$('#alertMask'))closeAlert();});
+
+  // 默认提示音（WebAudio 合成，演示用；正式版将内嵌 .wav 资源）
+  function playDefaultSound(){
+    try{
+      const Ctx=window.AudioContext||window.webkitAudioContext;const ctx=new Ctx();
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.setValueAtTime(880,ctx.currentTime);
+      o.frequency.setValueAtTime(620,ctx.currentTime+0.16);
+      g.gain.setValueAtTime(0.0001,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.32,ctx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.42);
+      o.start();o.stop(ctx.currentTime+0.44);
+      toast('已播放默认提示音','ok');
+    }catch(err){toast('当前环境不支持试听','err');}
+  }
+
+  // 右键菜单演示
+  const cd=$('#ctxDemo'),cm=$('#ctxMenu');
+  cd.addEventListener('contextmenu',e=>{e.preventDefault();cm.classList.add('show');
+    const r=cd.getBoundingClientRect();let x=e.clientX-r.left,y=e.clientY-r.top;
+    x=Math.min(x,r.width-218);y=Math.min(y,r.height-210);cm.style.left=x+'px';cm.style.top=y+'px';});
+  cd.addEventListener('click',()=>cm.classList.remove('show'));
+  document.addEventListener('click',()=>cm.classList.remove('show'));
+
+  let toastT;
+  function toast(t,kind){const el=$('#toast');el.textContent=t;el.className='toast show '+(kind||'');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200);}
+</script>
+</body>
+</html>
