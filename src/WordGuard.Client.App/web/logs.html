@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>WordGuard · 监控日志</title>
+<style>
+  :root{
+    --accent:#2f6bff; --accent-2:#06b6d4; --accent-soft:#eaf1ff;
+    --danger:#ef4444; --danger-soft:#fdeaea;
+    --ok:#10b981; --ok-soft:#e7f6ef;
+    --warn:#f59e0b; --warn-soft:#fef3e2;
+    --text:#16203a; --muted:#6b7589;
+    --bg:#eef2f9; --panel:#ffffff; --border:#e6eaf2;
+    --radius:14px;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow:hidden}
+  .app{height:100vh;display:flex;flex-direction:column;background:var(--panel)}
+
+  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
+  .titlebar .brand{display:flex;align-items:center;gap:11px;font-weight:800}
+  .titlebar .brand .logo{width:28px;height:28px;display:grid;place-items:center;background:rgba(255,255,255,.2);border-radius:9px}
+  .titlebar .brand .logo svg{width:16px;height:16px}
+  .titlebar .brand small{font-weight:500;opacity:.85;font-size:11.5px}
+  .titlebar .count{font-size:12px;background:rgba(255,255,255,.18);padding:4px 12px;border-radius:20px}
+
+  .content{flex:1;padding:20px 26px;overflow:auto}
+  h2{font-size:19px;margin:0 0 4px;font-weight:800}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+
+  .toolbar{display:flex;gap:9px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+  .btn{padding:8px 15px;border:1px solid var(--border);background:#fff;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;color:#33405c;transition:.15s}
+  .btn:hover{background:#f4f7fc;border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  input[type=text]{padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:12.5px;width:200px}
+  input[type=date]{padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:12.5px}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  th,td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:#f5f7fb;font-weight:700;color:#56627a;font-size:12px;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:#f8fbff}
+  .tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:600;background:#eef0f3;color:#535b69}
+  .tag.h{background:var(--danger-soft);color:var(--danger)}
+  .tag.m{background:var(--warn-soft);color:var(--warn)}
+  .tag.l{background:var(--ok-soft);color:var(--ok)}
+  .empty{color:var(--muted);text-align:center;padding:30px;background:#f7f9fc;border:1px dashed var(--border);border-radius:var(--radius)}
+  .content-cell{max-width:320px;white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+      <span>WordGuard <small>监控日志</small></span>
+    </div>
+    <span class="count" id="count">0 条</span>
+  </div>
+
+  <div class="content">
+    <h2>审计日志</h2>
+    <div class="sub">命中记录本地存储，仅本机可查</div>
+
+    <div class="toolbar">
+      <input type="date" id="fFrom"><span style="color:var(--muted)">至</span><input type="date" id="fTo">
+      <input type="text" id="fFilter" placeholder="内容关键字（可选）">
+      <button class="btn primary" onclick="query()">查询</button>
+    </div>
+
+    <table>
+      <thead><tr><th>时间</th><th>目标</th><th>窗口</th><th>级别</th><th>触发内容</th><th>命中词</th><th>处理</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="emptyBox"></div>
+  </div>
+</div>
+
+<script>
+  window.chrome.webview.addEventListener('message', e => {
+    const m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (m.type === 'init') { if (m.from) { document.getElementById('fFrom').value = m.from; document.getElementById('fTo').value = m.to; } query(); }
+    else if (m.type === 'rows') render(m.rows || []);
+  });
+  function query() {
+    window.chrome.webview.postMessage(JSON.stringify({type:'query', from: document.getElementById('fFrom').value, to: document.getElementById('fTo').value, filter: document.getElementById('fFilter').value}));
+  }
+  function render(rows) {
+    document.getElementById('count').textContent = rows.length + ' 条';
+    document.getElementById('emptyBox').innerHTML = '';
+    document.getElementById('rows').innerHTML = rows.length ? rows.map(r => `
+      <tr>
+        <td style="white-space:nowrap;font-family:var(--mono);font-size:11.5px">${esc(r.time)}</td>
+        <td>${esc(r.target)}</td>
+        <td>${esc(r.window)}</td>
+        <td><span class="tag ${r.sev==='high'?'h':r.sev==='medium'?'m':'l'}">${sevName(r.sev)}</span></td>
+        <td class="content-cell">${esc(r.content)}</td>
+        <td>${(r.words||[]).map(w=>`<span class="tag h">${esc(w)}</span>`).join(' ')}</td>
+        <td>${esc(r.disp)}</td>
+      </tr>`).join('') : '';
+    if (!rows.length) document.getElementById('emptyBox').innerHTML = '<div class="empty" style="margin-top:14px">该时间范围内无命中记录</div>';
+  }
+  const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const sevName = s => s === 'high' ? '高' : s === 'medium' ? '中' : '低';
+  window.chrome.webview.postMessage(JSON.stringify({type:'ready'}));
+</script>
+</body>
+</html>

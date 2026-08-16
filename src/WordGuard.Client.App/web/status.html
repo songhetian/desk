@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>WordGuard · 监控状态</title>
+<style>
+  :root{
+    --accent:#2f6bff; --accent-2:#06b6d4; --accent-soft:#eaf1ff;
+    --danger:#ef4444; --danger-soft:#fdeaea;
+    --ok:#10b981; --ok-soft:#e7f6ef;
+    --warn:#f59e0b; --warn-soft:#fef3e2;
+    --text:#16203a; --muted:#6b7589; --faint:#9aa3b5;
+    --bg:#eef2f9; --panel:#ffffff; --border:#e6eaf2;
+    --shadow:0 1px 3px rgba(20,40,80,.06),0 10px 30px rgba(20,40,80,.07);
+    --radius:14px;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;background:radial-gradient(1100px 560px at 85% -12%,rgba(47,107,255,.10),transparent 60%),var(--bg);color:var(--text);font-size:13px;overflow:hidden}
+  .app{height:100vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin:10px;box-shadow:var(--shadow)}
+
+  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
+  .titlebar .brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.3px}
+  .titlebar .brand .logo{width:28px;height:28px;display:grid;place-items:center;background:rgba(255,255,255,.2);border-radius:9px;box-shadow:0 0 14px rgba(255,255,255,.25)}
+  .titlebar .brand .logo svg{width:16px;height:16px}
+  .titlebar .brand small{font-weight:500;opacity:.85;font-size:11.5px}
+  .titlebar .live{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600}
+  .titlebar .live .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(16,185,129,.5);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}70%{box-shadow:0 0 0 8px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+
+  .readonly-bar{display:flex;align-items:center;gap:10px;padding:11px 22px;background:linear-gradient(90deg,#fef3e2,#fff7e6);color:#8a6d1f;border-bottom:1px solid #f3d8a8;font-weight:600;font-size:12.5px;flex:none}
+  .readonly-bar svg{width:16px;height:16px;flex:none}
+
+  .content{flex:1;padding:20px 26px;overflow:auto}
+  h2{font-size:19px;margin:0 0 4px;font-weight:800}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 18px}
+
+  .section-h{font-size:14px;font-weight:700;color:#26324d;margin:20px 0 12px;display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+  .section-h::before{content:"";width:4px;height:15px;background:linear-gradient(var(--accent),var(--accent-2));border-radius:2px}
+  .section-h::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+  .section-h .chev{transition:transform .15s;color:var(--muted)}
+  .section-h.collapsed .chev{transform:rotate(-90deg)}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+  .panel.collapsed{display:none}
+  .kv{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eef0f3;gap:14px}
+  .kv:last-child{border-bottom:none}
+  .kv .lbl{color:#3c4660;font-weight:500;display:flex;align-items:center;gap:8px}
+  .kv .lbl svg{width:15px;height:15px;color:var(--accent);opacity:.8}
+  .kv-right{display:flex;align-items:center;gap:10px}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700}
+  .badge.ok{background:var(--ok-soft);color:var(--ok)}
+  .badge.off{background:#eef0f3;color:#9499a3}
+
+  .tlist{display:flex;flex-wrap:wrap;gap:7px}
+  .tlist .tag{font-family:var(--mono);font-size:11.5px;background:#f1f5fb;border:1px solid var(--border);padding:4px 10px;border-radius:8px;color:#41506b}
+  .tlist .tag.h{background:var(--danger-soft);color:var(--danger);border-color:#f3c9c9;font-weight:700}
+  .tlist .tag.m{background:var(--warn-soft);color:var(--warn);border-color:#f3d8a8;font-weight:600}
+  .tlist .tag.l{background:var(--ok-soft);color:var(--ok);border-color:#b9e3cd}
+  .tlist .tag.off{opacity:.4;text-decoration:line-through}
+
+  .empty{color:var(--muted);text-align:center;padding:18px;background:#f7f9fc;border:1px dashed var(--border);border-radius:var(--radius);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+      <span>WordGuard <small>监控客户端</small></span>
+    </div>
+    <span class="live"><span class="dot"></span><span id="liveText">实时监控中</span></span>
+  </div>
+
+  <div class="readonly-bar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <span>本窗体为只读展示 · 监控目标与告警通道由管理员在「词库管理端」配置后随 wordlib.json 下发 · 员工无法修改</span>
+  </div>
+
+  <div class="content">
+    <h2>监控状态</h2>
+    <div class="sub" id="subInfo">加载中…</div>
+
+    <div class="section-h" onclick="toggleSec('targetsPanel', this)">监控目标 <span class="chev">▾</span></div>
+    <div class="panel" id="targetsPanel"><div id="targets" class="empty">加载中…</div></div>
+
+    <div class="section-h" onclick="toggleSec('channelsPanel', this)">告警通道 <span class="chev">▾</span></div>
+    <div class="panel" id="channelsPanel">
+      <div class="kv"><span class="lbl">弹窗提醒</span><span class="kv-right"><span class="badge" id="bPopup">—</span></span></div>
+      <div class="kv"><span class="lbl">声音提醒</span><span class="kv-right"><span class="badge" id="bSound">—</span></span></div>
+      <div class="kv"><span class="lbl">高亮标记</span><span class="kv-right"><span class="badge" id="bHighlight">—</span></span></div>
+    </div>
+
+    <div class="section-h" onclick="toggleSec('libPanel', this)">监控词库（<span id="libCount">0</span> 条 · 仅显示已启用）<span class="chev">▾</span></div>
+    <div class="panel" id="libPanel"><div id="libList" class="tlist"><div class="empty">词库为空</div></div></div>
+
+    <div class="section-h" onclick="toggleSec('runInfoPanel', this)">运行信息 <span class="chev">▾</span></div>
+    <div class="panel" id="runInfoPanel">
+      <div class="kv"><span class="lbl">词库文件</span><span class="kv-right" id="vLibStatus">—</span></div>
+      <div class="kv"><span class="lbl">去重窗口</span><span class="kv-right" id="vCooldown">—</span></div>
+      <div class="kv"><span class="lbl">日志保留</span><span class="kv-right" id="vRetention">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const libEntries = [];
+
+  window.chrome.webview.addEventListener('message', e => {
+    const m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (m.type === 'init') render(m);
+  });
+
+  function render(m) {
+    document.getElementById('liveText').textContent = m.online ? '实时监控中' : '离线（词库缺失）';
+    document.getElementById('subInfo').textContent = m.online
+      ? `路径：${m.libPath || '—'} · 更新于 ${m.updatedAt || '—'}`
+      : '词库文件未找到，监控引擎降级为空匹配（不会误告警）';
+
+    // 监控目标
+    const targets = m.targets || [];
+    document.getElementById('targets').innerHTML = targets.length
+      ? `<div class="tlist">${targets.map(t => `<span class="tag">${esc(t.exeName)}${t.exePath ? ' &nbsp;·&nbsp; ' + esc(t.exePath) : ''}</span>`).join('')}</div>`
+      : '<div class="empty">（未配置监控目标 — 请联系管理员）</div>';
+
+    // 三通道
+    setBadge('bPopup', m.alertPopup); setBadge('bSound', m.alertSound); setBadge('bHighlight', m.alertHighlight);
+
+    // 词库列表（只读：员工可看到在监控哪些词）
+    const enabled = (m.words || []).filter(w => w.enabled);
+    document.getElementById('libCount').textContent = enabled.length;
+    document.getElementById('libList').innerHTML = enabled.length
+      ? enabled.map(w => `<span class="tag ${w.severity||''}">${esc(w.text)}<small style="margin-left:6px;opacity:.7;font-weight:500">${sevName(w.severity)}</small></span>`).join('')
+      : '<div class="empty">词库为空或全部停用</div>';
+
+    // 运行信息
+    document.getElementById('vLibStatus').textContent = m.libStatus || '—';
+    document.getElementById('vCooldown').textContent = (m.cooldownSeconds ?? 30) + ' 秒';
+    document.getElementById('vRetention').textContent = (m.logRetentionDays ?? 30) + ' 天';
+  }
+
+  function setBadge(id, on) {
+    const b = document.getElementById(id);
+    b.textContent = on ? '已开启' : '已关闭';
+    b.className = 'badge ' + (on ? 'ok' : 'off');
+  }
+
+  function toggleSec(id, hdr) {
+    const p = document.getElementById(id);
+    if (p) { p.classList.toggle('collapsed'); hdr.classList.toggle('collapsed'); }
+  }
+
+  const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const sevName = s => s === 'high' ? '高危' : s === 'medium' ? '中危' : '低危';
+
+  window.chrome.webview.postMessage(JSON.stringify({type:'ready'}));
+</script>
+</body>
+</html>

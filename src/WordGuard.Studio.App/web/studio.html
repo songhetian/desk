@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WordGuard · 词库管理端</title>
+<style>
+  :root{
+    --accent:#7c3aed; --accent-2:#a855f7; --accent-soft:#f1e9ff;
+    --danger:#ef4444; --danger-soft:#fdeaea;
+    --ok:#10b981; --ok-soft:#e7f6ef;
+    --warn:#f59e0b; --warn-soft:#fef3e2;
+    --text:#16203a; --muted:#6b7589; --faint:#9aa3b5;
+    --bg:#eef2f9; --panel:#ffffff; --border:#e6eaf2;
+    --shadow:0 1px 3px rgba(20,40,80,.06),0 10px 30px rgba(20,40,80,.07);
+    --radius:14px;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow:hidden}
+  .app{height:100vh;display:flex;flex-direction:column;background:var(--panel)}
+
+  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;flex:none}
+  .titlebar .brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.3px}
+  .titlebar .brand .logo{width:28px;height:28px;display:grid;place-items:center;background:rgba(255,255,255,.2);border-radius:9px;box-shadow:0 0 14px rgba(255,255,255,.25)}
+  .titlebar .brand .logo svg{width:16px;height:16px}
+  .titlebar .brand small{font-weight:500;opacity:.85;font-size:11.5px}
+  .titlebar .status{font-size:11px;background:rgba(255,255,255,.18);padding:4px 12px;border-radius:20px}
+
+  .content{flex:1;padding:22px 26px;overflow:auto}
+  h2{font-size:19px;margin:0 0 4px;font-weight:800}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 18px}
+
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:15px 17px;position:relative;box-shadow:var(--shadow)}
+  .card .k{color:var(--muted);font-size:12px;font-weight:500}
+  .card .v{font-size:25px;font-weight:800;margin-top:8px;font-family:var(--mono);letter-spacing:.5px}
+  .card .v small{font-size:12px;font-weight:500;color:var(--muted);font-family:"Segoe UI",sans-serif}
+
+  .toolbar{display:flex;gap:9px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+  .btn{padding:8px 15px;border:1px solid var(--border);background:#fff;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;color:#33405c;transition:.15s;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{background:#f4f7fc;border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 12px rgba(124,58,237,.3)}
+  .btn.primary:hover{filter:brightness(1.08);color:#fff}
+  .btn.danger{color:var(--danger);border-color:#f3c9c9}
+  .btn.danger:hover{background:var(--danger-soft);border-color:var(--danger);color:var(--danger)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn svg{width:15px;height:15px}
+
+  .cat-filter{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+  .cat-chip{font-size:11.5px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:#fff;cursor:pointer;color:#56627a;font-weight:500}
+  .cat-chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  th,td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left}
+  th{background:#f5f7fb;font-weight:700;color:#56627a;font-size:12px}
+  tr:last-child td{border-bottom:none}
+  tbody tr{transition:background .12s}
+  tbody tr:hover td{background:#f8fbff}
+  .chk{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  .tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:600;background:#eef0f3;color:#535b69}
+  .tag.h{background:var(--danger-soft);color:var(--danger)}
+  .tag.m{background:var(--warn-soft);color:var(--warn)}
+  .tag.l{background:var(--ok-soft);color:var(--ok)}
+  .tag.c{background:var(--accent-soft);color:var(--accent)}
+  .switch{position:relative;display:inline-block;width:42px;height:23px;cursor:pointer}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .track{position:absolute;inset:0;background:#cdd3dc;border-radius:23px;transition:.2s}
+  .switch .track::before{content:"";position:absolute;height:17px;width:17px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .switch input:checked + .track{background:var(--accent)}
+  .switch input:checked + .track::before{transform:translateX(19px)}
+  .empty{color:var(--muted);text-align:center;padding:30px;background:#f7f9fc;border:1px dashed var(--border);border-radius:var(--radius)}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:14px;line-height:1.6;background:#f5f7fb;border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+
+  .overlay{position:fixed;inset:0;background:rgba(12,18,34,.42);display:none;align-items:center;justify-content:center;z-index:50}
+  .overlay.show{display:flex}
+  .modal{width:520px;max-width:calc(100% - 40px);max-height:84vh;background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:auto;animation:pop .2s ease}
+  .modal .mh{padding:15px 18px;border-bottom:1px solid var(--border);font-weight:800;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+  .modal .mb{padding:18px;display:flex;flex-direction:column;gap:12px}
+  .modal .mf{padding:13px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:9px}
+  .modal .x{cursor:pointer;color:var(--muted);font-size:20px;line-height:1}
+  .modal label{font-size:12px;color:var(--muted);font-weight:600}
+  .modal input[type=text],.modal select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:12.5px;background:#fff}
+  .modal input[type=text]:focus,.modal select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .row2{display:flex;gap:12px}
+  .row2>div{flex:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlebar">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+      <span>WordGuard <small>词库管理端</small></span>
+    </div>
+    <span class="status" id="statusPill">就绪</span>
+  </div>
+
+  <div class="content">
+    <h2>词库管理</h2>
+    <div class="sub" id="subInfo">加载中…</div>
+
+    <div class="cards">
+      <div class="card"><div class="k">词库总数</div><div class="v" id="cTotal">0</div></div>
+      <div class="card"><div class="k">已启用</div><div class="v" id="cEnabled">0</div></div>
+      <div class="card"><div class="k">已停用</div><div class="v" id="cDisabled">0</div></div>
+      <div class="card"><div class="k">监控目标</div><div class="v" id="cTargets">0</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="openAdd()">＋ 新增词条</button>
+      <button class="btn" onclick="openDeploy()">⚙ 部署配置</button>
+      <span style="flex:1"></span>
+      <button class="btn primary" onclick="doExport()">⤓ 导出 wordlib.json</button>
+    </div>
+
+    <div class="cat-filter" id="catFilter"></div>
+
+    <table>
+      <thead><tr><th style="width:34px"><input type="checkbox" class="chk" id="selAll" onchange="selectAll(this.checked)"></th><th>违禁词</th><th>分类</th><th>级别</th><th>启用</th><th style="width:120px">操作</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="hint">提示：导出后把 <b>wordlib.json</b> 拷贝到各客户端的安装目录覆盖即可完成下发；监控目标与告警开关在「部署配置」中设置，随词库一并下发，客户端只读。</div>
+  </div>
+</div>
+
+<!-- 新增/编辑词条 -->
+<div class="overlay" id="ovAdd">
+  <div class="modal">
+    <div class="mh"><span id="addTitle">新增词条</span><span class="x" onclick="closeAdd()">×</span></div>
+    <div class="mb">
+      <div><label>违禁词文本（必填）</label><input type="text" id="fText" placeholder="如：绝对化用语"></div>
+      <div class="row2">
+        <div><label>分类</label><input type="text" id="fCat" placeholder="如：夸大宣传"></div>
+        <div><label>严重级别</label>
+          <select id="fSev"><option value="high">高</option><option value="medium" selected>中</option><option value="low">低</option></select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" class="chk" id="fEnabled" checked style="width:16px"><label style="margin:0">启用该词</label></div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeAdd()">取消</button>
+      <button class="btn primary" onclick="saveWord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 部署配置 -->
+<div class="overlay" id="ovDeploy">
+  <div class="modal" style="width:560px">
+    <div class="mh"><span>部署配置（随词库下发，客户端只读）</span><span class="x" onclick="closeDeploy()">×</span></div>
+    <div class="mb">
+      <div><label>监控目标（每行一个：EXE名 或 EXE名 | 路径前缀，留空路径=仅按EXE名）</label>
+        <textarea id="fTargets" rows="4" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:9px;font-size:12.5px;resize:vertical" placeholder="WeChat.exe&#10;WXWork.exe | C:\Tencent\WXWork\"></textarea>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" class="chk" id="fPopup" checked>弹窗提醒</label>
+        <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" class="chk" id="fSound" checked>声音提醒</label>
+        <label style="display:flex;align-items:center;gap:7px"><input type="checkbox" class="chk" id="fHighlight" checked>高亮标记</label>
+      </div>
+      <div class="row2">
+        <div><label>去重窗口（秒）</label><input type="number" id="fCooldown" value="30" min="0" max="3600" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:9px"></div>
+        <div><label>日志保留（天）</label><input type="number" id="fRetention" value="30" min="1" max="3650" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:9px"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeDeploy()">取消</button>
+      <button class="btn primary" onclick="saveDeploy()">保存部署配置</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- 状态 ----------
+let words = [];
+let deploy = { targets: [], alertPopup: true, alertSound: true, alertHighlight: true, soundFilePath: "", cooldownSeconds: 30, logRetentionDays: 30 };
+let libPath = "";
+let selected = new Set();
+let catFilter = "全部";
+let editingId = null;
+
+const esc = s => (s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sevName = s => s === 'high' ? '高' : s === 'medium' ? '中' : '低';
+
+// ---------- 消息桥 ----------
+function send(type, payload) {
+  window.chrome.webview.postMessage(JSON.stringify({ type, ...(payload || {}) }));
+}
+window.chrome.webview.addEventListener('message', e => {
+  const m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+  if (m.type === 'init') applyInit(m);
+  else if (m.type === 'updated') { words = m.words || []; deploy = m.deploy || deploy; render(); }
+  else if (m.type === 'toast') toast(m.text, m.ok);
+});
+
+function applyInit(m) {
+  words = m.words || [];
+  deploy = m.deploy || deploy;
+  libPath = m.libPath || "";
+  render();
+  toast('词库已加载', true);
+}
+
+function toast(text, ok) {
+  const p = document.getElementById('statusPill');
+  p.textContent = text;
+  p.style.background = ok ? 'rgba(255,255,255,.22)' : 'var(--danger)';
+  setTimeout(() => p.style.background = 'rgba(255,255,255,.18)', 2500);
+}
+
+// ---------- 渲染 ----------
+function render() {
+  const total = words.length, enabled = words.filter(w => w.enabled).length;
+  document.getElementById('cTotal').textContent = total;
+  document.getElementById('cEnabled').textContent = enabled;
+  document.getElementById('cDisabled').textContent = total - enabled;
+  document.getElementById('cTargets').textContent = (deploy.targets || []).length;
+  document.getElementById('subInfo').textContent = `词库路径：${libPath || '未加载'}`;
+
+  // 分类筛选 chips
+  const cats = [...new Set(words.map(w => w.category))];
+  document.getElementById('catFilter').innerHTML =
+    `<span style="color:var(--muted);font-size:12px">分类：</span>` +
+    `<span class="cat-chip ${catFilter==='全部'?'on':''}" onclick="setCat('全部')">全部</span>` +
+    cats.map(c => `<span class="cat-chip ${catFilter===c?'on':''}" onclick="setCat('${esc(c)}')">${esc(c)}</span>`).join('');
+
+  const filtered = words.filter(w => catFilter === '全部' || w.category === catFilter);
+  document.getElementById('rows').innerHTML = filtered.length ? filtered.map(w => `
+    <tr>
+      <td><input type="checkbox" class="chk" ${selected.has(w.id)?'checked':''} onchange="toggleSel('${w.id}',this.checked)"></td>
+      <td><b>${esc(w.text)}</b></td>
+      <td><span class="tag c">${esc(w.category||'未分类')}</span></td>
+      <td><span class="tag ${w.severity==='high'?'h':w.severity==='medium'?'m':'l'}">${sevName(w.severity)}</span></td>
+      <td><label class="switch"><input type="checkbox" ${w.enabled?'checked':''} onchange="toggleWord('${w.id}',this.checked)"><span class="track"></span></label></td>
+      <td><button class="btn" onclick="openEdit('${w.id}')">编辑</button> <button class="btn danger" onclick="delWord('${w.id}')">删除</button></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">该分类下暂无词条</td></tr>';
+}
+
+function setCat(c) { catFilter = c; render(); }
+function toggleSel(id, on) { on ? selected.add(id) : selected.delete(id); }
+function toggleWord(id, on) { send('toggleWord', { id, enabled: on }); }
+function delWord(id) { if (confirm('确认删除该词条？')) send('deleteWord', { id }); }
+function selectAll(on) {
+  selected.clear();
+  if (on) words.filter(w => catFilter === '全部' || w.category === catFilter).forEach(w => selected.add(w.id));
+  render();
+}
+
+// ---------- 新增/编辑 ----------
+function openAdd() { editingId = null; document.getElementById('addTitle').textContent = '新增词条'; reset(); document.getElementById('ovAdd').classList.add('show'); }
+function openEdit(id) {
+  const w = words.find(x => x.id === id); if (!w) return;
+  editingId = id;
+  document.getElementById('addTitle').textContent = '编辑词条';
+  document.getElementById('fText').value = w.text;
+  document.getElementById('fCat').value = w.category || '';
+  document.getElementById('fSev').value = w.severity;
+  document.getElementById('fEnabled').checked = !!w.enabled;
+  document.getElementById('ovAdd').classList.add('show');
+}
+function reset() { document.getElementById('fText').value=''; document.getElementById('fCat').value=''; document.getElementById('fSev').value='medium'; document.getElementById('fEnabled').checked=true; }
+function closeAdd() { document.getElementById('ovAdd').classList.remove('show'); }
+function saveWord() {
+  const text = document.getElementById('fText').value.trim();
+  if (!text) { alert('违禁词文本不能为空'); return; }
+  send('saveWord', { id: editingId, text, category: document.getElementById('fCat').value.trim(), severity: document.getElementById('fSev').value, enabled: document.getElementById('fEnabled').checked });
+  closeAdd();
+}
+
+// ---------- 部署配置 ----------
+function openDeploy() {
+  document.getElementById('fTargets').value = (deploy.targets || []).map(t => t.exePath ? `${t.exeName} | ${t.exePath}` : t.exeName).join('\n');
+  document.getElementById('fPopup').checked = !!deploy.alertPopup;
+  document.getElementById('fSound').checked = !!deploy.alertSound;
+  document.getElementById('fHighlight').checked = !!deploy.alertHighlight;
+  document.getElementById('fCooldown').value = deploy.cooldownSeconds ?? 30;
+  document.getElementById('fRetention').value = deploy.logRetentionDays ?? 30;
+  document.getElementById('ovDeploy').classList.add('show');
+}
+function closeDeploy() { document.getElementById('ovDeploy').classList.remove('show'); }
+function saveDeploy() {
+  const targets = document.getElementById('fTargets').value.split('\n').map(l => l.trim()).filter(Boolean)
+    .map(l => { const [exe, p] = l.split('|').map(s => s.trim()); return { exeName: exe, exePath: p || null }; })
+    .filter(t => t.exeName);
+  send('saveDeploy', {
+    targets, alertPopup: document.getElementById('fPopup').checked,
+    alertSound: document.getElementById('fSound').checked,
+    alertHighlight: document.getElementById('fHighlight').checked,
+    cooldownSeconds: parseInt(document.getElementById('fCooldown').value) || 30,
+    logRetentionDays: parseInt(document.getElementById('fRetention').value) || 30,
+  });
+  closeDeploy();
+}
+
+// ---------- 导出 ----------
+function doExport() { send('export'); }
+
+// 请求初始化
+send('init');
+</script>
+</body>
+</html>

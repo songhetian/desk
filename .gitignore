@@ -1,0 +1,30 @@
+# ===== .NET 构建产物（每个项目 bin/obj，占 366M 大头）=====
+bin/
+obj/
+*.user
+*.suo
+
+# ===== 发布产物（员工包/管理端包，用脚本或手动重新 publish）=====
+publish/
+
+# ===== 本地 NuGet 源（WebView2 nupkg 9MB，不进 git）=====
+.nuget-local/
+
+# ===== 本地工具链状态（本机专用，不应进仓库）=====
+.workbuddy/
+.agents/
+skills-lock.json
+.vs/
+.idea/
+
+# ===== 运行时安装脚本（下载来的 dotnet 安装器）=====
+dotnet-install.ps1
+dotnet-install.sh
+
+# ===== 杂项 =====
+.docs/
+node_modules/
+*.log
+*.tmp
+Thumbs.db
+Desktop.ini

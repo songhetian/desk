@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WordGuard.Client.Smoke</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AssemblyName>WordGuard.Smoke</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WordGuard.Client\WordGuard.Client.csproj" />
+    <ProjectReference Include="..\WordGuard.Core\WordGuard.Core.csproj" />
+  </ItemGroup>
+</Project>
