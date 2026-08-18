@@ -49,11 +49,11 @@ public sealed class StatusForm : Form
     private Label _lblDiagLastMethod = null!;
     private System.Windows.Forms.Timer? _diagTimer;
 
-    private static readonly Color Primary = Color.FromArgb(59, 130, 246);
-    private static readonly Color PrimaryHover = Color.FromArgb(37, 99, 235);
-    private static readonly Color BorderGray = Color.FromArgb(229, 231, 235);
-    private static readonly Color BgGray = Color.FromArgb(249, 250, 251);
-    private static readonly Color TextGray = Color.FromArgb(107, 114, 128);
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryHover = Color.FromArgb(99, 102, 241);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(246, 247, 251);
+    private static readonly Color TextGray = Color.FromArgb(86, 95, 115);
 
     public StatusForm(Func<LibraryFileSource> getLib, Func<string> getLibPath,
         AppSettings settings, string settingsPath, Action onSaved,
@@ -86,7 +86,7 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Top,
             Height = 72,
             Padding = new Padding(20, 14, 20, 14),
-            BackColor = Color.FromArgb(239, 246, 255),
+            BackColor = Color.FromArgb(238, 240, 255),
         };
 
         var statusDot = new Panel
@@ -104,7 +104,7 @@ public sealed class StatusForm : Form
         {
             Dock = DockStyle.Fill,
             Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(30, 64, 175),
+            ForeColor = Color.FromArgb(79, 70, 229),
             TextAlign = ContentAlignment.MiddleLeft,
             Text = "监控运行中",
             Padding = new Padding(12, 0, 0, 0),
@@ -243,7 +243,7 @@ public sealed class StatusForm : Form
             BackColor = Color.White,
             ForeColor = Primary,
         };
-        btnAdd.FlatAppearance.BorderColor = Color.FromArgb(191, 219, 254);
+        btnAdd.FlatAppearance.BorderColor = Color.FromArgb(224, 231, 255);
         btnAdd.Click += (_, _) => AddTargetManually();
 
         var btnPick = new Button
@@ -256,7 +256,7 @@ public sealed class StatusForm : Form
             BackColor = Color.White,
             ForeColor = Primary,
         };
-        btnPick.FlatAppearance.BorderColor = Color.FromArgb(191, 219, 254);
+        btnPick.FlatAppearance.BorderColor = Color.FromArgb(224, 231, 255);
         btnPick.Click += (_, _) => PickFromProcesses();
 
         var btnDelete = new Button
@@ -267,7 +267,7 @@ public sealed class StatusForm : Form
             Size = new Size(124, 32),
             FlatStyle = FlatStyle.Flat,
             BackColor = Color.White,
-            ForeColor = Color.FromArgb(239, 68, 68),
+            ForeColor = Color.FromArgb(229, 72, 77),
         };
         btnDelete.FlatAppearance.BorderColor = Color.FromArgb(254, 202, 202);
         btnDelete.Click += (_, _) => DeleteSelectedTargets();
@@ -420,7 +420,7 @@ public sealed class StatusForm : Form
             BackColor = Color.White,
             ForeColor = Primary,
         };
-        btnImport.FlatAppearance.BorderColor = Color.FromArgb(191, 219, 254);
+        btnImport.FlatAppearance.BorderColor = Color.FromArgb(224, 231, 255);
         btnImport.Click += (_, _) => ImportLibrary();
 
         searchPanel.Controls.AddRange(new Control[] { lblSearch, _txtWordSearch, btnImport });
@@ -618,7 +618,7 @@ public sealed class StatusForm : Form
         _settings.AlertPopup = true;
         _settings.AlertSound = true;
         _settings.AlertVoice = true;
-        _settings.CooldownSeconds = 30;
+        _settings.CooldownSeconds = 5;
         _settings.LogRetentionDays = 30;
 
         try
@@ -638,26 +638,9 @@ public sealed class StatusForm : Form
 
     private void ImportLibrary()
     {
-        using var dlg = new OpenFileDialog
-        {
-            Filter = "JSON 词库文件|*.json|所有文件|*.*",
-            Title = "导入违禁词库",
-        };
-        if (dlg.ShowDialog(this) != DialogResult.OK) return;
-
-        try
-        {
-            var importer = new ClientLibraryImporter();
-            var result = importer.ImportJson(File.ReadAllText(dlg.FileName), _getLibPath());
-            MessageBox.Show(this, result.Message, result.Success ? "导入成功" : "导入失败",
-                MessageBoxButtons.OK, result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
-            if (result.Success) LoadData();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, "导入失败：" + ex.Message, "导入失败",
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        using var form = new ImportForm(_getLibPath());
+        if (form.ShowDialog(this) == DialogResult.OK)
+            LoadData();
     }
 
     private void BuildDiagTab(TabPage tab)
@@ -801,7 +784,7 @@ public sealed class StatusForm : Form
             Left = 100,
             Top = 66,
             AutoSize = true,
-            ForeColor = Color.FromArgb(37, 99, 235),
+            ForeColor = Color.FromArgb(79, 70, 229),
             Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
         };
 
@@ -912,7 +895,7 @@ public sealed class StatusForm : Form
             BackColor = Color.White,
             ForeColor = Primary,
         };
-        btnOpenLog.FlatAppearance.BorderColor = Color.FromArgb(191, 219, 254);
+        btnOpenLog.FlatAppearance.BorderColor = Color.FromArgb(224, 231, 255);
         btnOpenLog.Click += (_, _) =>
         {
             var path = _getDebugLogPath?.Invoke();
@@ -1005,26 +988,92 @@ public sealed class StatusForm : Form
     }
 }
 
-/// <summary>简单输入对话框工具类。</summary>
+/// <summary>Premium 风格输入对话框。</summary>
 internal static class InputDialog
 {
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryHover = Color.FromArgb(99, 102, 241);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(246, 247, 251);
+
     public static string? Show(IWin32Window owner, string prompt, string title, string defaultValue)
     {
         using var form = new Form
         {
             Text = title,
-            Size = new Size(360, 150),
+            Size = new Size(400, 170),
             FormBorderStyle = FormBorderStyle.FixedDialog,
             StartPosition = FormStartPosition.CenterParent,
             MaximizeBox = false,
             MinimizeBox = false,
             Font = new Font("Microsoft YaHei UI", 9f),
+            BackColor = Color.White,
         };
-        var label = new Label { Left = 16, Top = 16, Text = prompt, AutoSize = true };
-        var textBox = new TextBox { Left = 16, Top = 42, Width = 312, Text = defaultValue };
-        var btnOk = new Button { Text = "确定", Left = 172, Top = 78, Size = new Size(80, 28), DialogResult = DialogResult.OK };
-        var btnCancel = new Button { Text = "取消", Left = 262, Top = 78, Size = new Size(80, 28), DialogResult = DialogResult.Cancel };
-        form.Controls.AddRange(new Control[] { label, textBox, btnOk, btnCancel });
+
+        var lblPrompt = new Label
+        {
+            Text = prompt,
+            Left = 24,
+            Top = 24,
+            AutoSize = true,
+            ForeColor = Color.FromArgb(22, 27, 38),
+            Font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold),
+        };
+
+        var textBox = new TextBox
+        {
+            Left = 24,
+            Top = 56,
+            Width = 336,
+            Height = 32,
+            Text = defaultValue,
+            BorderStyle = BorderStyle.FixedSingle,
+            Font = new Font("Microsoft YaHei UI", 10f),
+        };
+
+        var btnPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 52,
+            BackColor = BgGray,
+        };
+
+        var btnCancel = new Button
+        {
+            Text = "取消",
+            DialogResult = DialogResult.Cancel,
+            Size = new Size(88, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = Color.FromArgb(86, 95, 115),
+            Font = new Font("Microsoft YaHei UI", 9f),
+        };
+        btnCancel.FlatAppearance.BorderColor = BorderGray;
+
+        var btnOk = new Button
+        {
+            Text = "确定",
+            DialogResult = DialogResult.OK,
+            Size = new Size(88, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Primary,
+            ForeColor = Color.White,
+            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+        };
+        btnOk.FlatAppearance.BorderSize = 0;
+        btnOk.MouseEnter += (_, _) => btnOk.BackColor = PrimaryHover;
+        btnOk.MouseLeave += (_, _) => btnOk.BackColor = Primary;
+
+        void LayoutBtns(object? s, EventArgs e)
+        {
+            var w = btnPanel.ClientSize.Width;
+            btnOk.Location = new Point(w - 120, 10);
+            btnCancel.Location = new Point(w - 216, 10);
+        }
+        btnPanel.Resize += LayoutBtns;
+        btnPanel.Controls.AddRange(new Control[] { btnCancel, btnOk });
+
+        form.Controls.AddRange(new Control[] { lblPrompt, textBox, btnPanel });
         form.AcceptButton = btnOk;
         form.CancelButton = btnCancel;
         return form.ShowDialog(owner) == DialogResult.OK ? textBox.Text : null;

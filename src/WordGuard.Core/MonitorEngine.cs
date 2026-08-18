@@ -124,7 +124,10 @@ public sealed class MonitorEngine
         var triggered = new List<TriggeredWord>();
         foreach (var (word, agg) in byWord)
         {
-            var shouldAlert = skipDedup || _dedup.ShouldAlert(word, input.ContextId, input.Timestamp);
+            // 拼音模式（键盘钩子兜底）不刷新冷却窗口：避免拼音缓冲区提前命中后，
+            // 等中文真正上屏时反而被冷却抑制（如分开输入"第"+"一"的场景）。
+            var refreshCooldown = !isPinyinMode;
+            var shouldAlert = skipDedup || _dedup.ShouldAlert(word, input.ContextId, input.Timestamp, refreshCooldown);
             triggered.Add(new TriggeredWord(word, agg.Severity, shouldAlert, agg.Pos, agg.Id));
         }
         return new CaptureResult(true, triggered);

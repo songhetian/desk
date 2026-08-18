@@ -148,10 +148,9 @@ public sealed class CaptureHost : IDisposable
 
         if (e.Event.Channels.Contains(AlertChannel.Popup))
         {
-            // 在 UI 线程创建弹窗（定时器回调本就在 UI 线程，但稳妥起见用 BeginInvoke）
-            var popup = new AlertPopupForm(
-                e.Event, e.TriggeredText, e.TargetSoftware, e.WindowTitle,
-                LookupCategory(e.Event.AlertWords.FirstOrDefault()));
+            var category = LookupCategory(e.Event.AlertWords.FirstOrDefault());
+            var popup = new AlertPopupForm(e.Event, e.TriggeredText, e.TargetSoftware, e.WindowTitle, category);
+
             popup.Confirmed += () =>
             {
                 foreach (var w in e.Event.ActiveWords) _lib.Acknowledge(w.Word, e.ContextId);
@@ -179,7 +178,6 @@ public sealed class CaptureHost : IDisposable
                 _service.AcknowledgeAlert();
                 DebugWrite($"[告警超时] 审计Id={e.AuditLogId}");
             };
-            // WinForms 定时器回调本就在 UI 线程，直接 Show 即可
             popup.Show();
         }
     }

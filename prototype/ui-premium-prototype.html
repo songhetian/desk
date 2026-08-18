@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WordGuard · 精致现代风 高保真原型</title>
+<style>
+  :root{
+    /* 表面 */
+    --surface:#FFFFFF;
+    --surface-2:#F6F7FB;
+    --surface-3:#EEF1F7;
+    /* 描边 */
+    --border:#E7E9F0;
+    --border-strong:#D8DCE6;
+    /* 文字 */
+    --text:#161B26;
+    --text-2:#565F73;
+    --text-3:#8A92A6;
+    /* 主色（克制靛蓝） */
+    --primary:#4F46E5;
+    --primary-2:#6366F1;
+    --primary-grad:linear-gradient(135deg,#6366F1,#4F46E5);
+    --primary-soft:#EEF0FF;
+    /* 语义色 */
+    --danger:#E5484D;  --danger-soft:#FDECEC;
+    --warn:#F08C00;    --warn-soft:#FEF3E2;
+    --success:#2F9E44; --success-soft:#E7F6EC;
+    /* 阴影 */
+    --sh-sm:0 1px 2px rgba(20,30,60,.05),0 1px 3px rgba(20,30,60,.04);
+    --sh-md:0 4px 12px rgba(20,30,60,.06),0 2px 4px rgba(20,30,60,.03);
+    --sh-lg:0 16px 38px rgba(20,30,60,.10),0 6px 14px rgba(20,30,60,.05);
+    --sh-glow:0 8px 26px rgba(79,70,229,.28);
+    /* 圆角 */
+    --r-sm:9px; --r-md:13px; --r-lg:18px; --r-xl:22px;
+    /* 字体 */
+    --font:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;
+    /* 玻璃 */
+    --glass:rgba(255,255,255,.72);
+    --glass-border:rgba(255,255,255,.65);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);
+    color:var(--text);
+    background:
+      radial-gradient(1200px 700px at 22% 12%,#F6F8FD 0%,transparent 60%),
+      radial-gradient(1000px 800px at 88% 92%,#EEF0FA 0%,transparent 55%),
+      #E9ECF4;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ===== 桌面舞台 ===== */
+  .stage{position:relative;width:100vw;height:100vh;padding:34px;}
+  .stage-title{
+    position:absolute;left:34px;top:30px;
+    font-size:13px;letter-spacing:.14em;color:var(--text-3);font-weight:600;text-transform:uppercase;
+  }
+  .stage-title b{color:var(--primary);}
+
+  .windows{position:absolute;inset:0;}
+
+  /* ===== 窗口通用 ===== */
+  .win{
+    position:absolute;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--r-xl);box-shadow:var(--sh-lg);overflow:hidden;display:flex;flex-direction:column;
+  }
+  .win-head{
+    height:54px;flex:none;display:flex;align-items:center;gap:12px;padding:0 18px;
+    border-bottom:1px solid var(--border);background:linear-gradient(180deg,#FFFFFF,#FBFCFE);
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:.01em}
+  .brand .logo{
+    width:30px;height:30px;border-radius:9px;background:var(--primary-grad);
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-glow);
+  }
+  .brand .logo svg{width:17px;height:17px}
+  .win-sub{font-size:12px;color:var(--text-3);font-weight:600}
+  .head-spacer{flex:1}
+  .icon-btn{
+    width:32px;height:32px;border-radius:9px;border:1px solid transparent;background:transparent;
+    color:var(--text-2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.18s;
+  }
+  .icon-btn:hover{background:var(--surface-2);color:var(--text)}
+  .icon-btn svg{width:16px;height:16px}
+  .live{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--success)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 4px var(--success-soft);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+  /* ===== 状态面板 ===== */
+  .status-win{left:46px;top:78px;width:480px;height:560px}
+  .tabs{display:flex;gap:4px;padding:10px 14px 0;border-bottom:1px solid var(--border)}
+  .tab{
+    padding:9px 14px;font-size:13px;font-weight:600;color:var(--text-3);cursor:pointer;border-radius:9px 9px 0 0;
+    border-bottom:2px solid transparent;transition:.18s;position:relative;top:1px;
+  }
+  .tab:hover{color:var(--text-2);background:var(--surface-2)}
+  .tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+  .tab-body{padding:20px;overflow:auto;flex:1}
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+  .stat{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;
+  }
+  .stat .k{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-3);text-transform:uppercase}
+  .stat .v{font-size:26px;font-weight:700;margin-top:6px;letter-spacing:-.01em}
+  .stat .v small{font-size:13px;color:var(--text-3);font-weight:600;margin-left:3px}
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+    padding:18px;margin-bottom:16px;box-shadow:var(--sh-sm);
+  }
+  .card h4{font-size:13px;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .card h4 .tag{margin-left:auto;font-size:11px;font-weight:600;color:var(--text-3);background:var(--surface-2);padding:3px 8px;border-radius:20px}
+  .target{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px dashed var(--border)}
+  .target:last-child{border-bottom:0}
+  .app-ic{width:34px;height:34px;border-radius:10px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--text-2)}
+  .target .nm{font-size:13.5px;font-weight:600}
+  .target .st{margin-left:auto;font-size:12px;font-weight:600;color:var(--success);display:flex;align-items:center;gap:6px}
+  .feed{display:flex;flex-direction:column;gap:10px}
+  .feed-item{display:flex;gap:11px;align-items:flex-start}
+  .feed-ic{width:30px;height:30px;border-radius:9px;background:var(--danger-soft);color:var(--danger);display:flex;align-items:center;justify-content:center;flex:none}
+  .feed-ic svg{width:15px;height:15px}
+  .feed-item .t{font-size:13px;font-weight:600}
+  .feed-item .d{font-size:12px;color:var(--text-3);margin-top:2px}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;font-family:var(--font);font-size:13px;font-weight:600;
+    padding:9px 15px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);
+    cursor:pointer;transition:.18s;
+  }
+  .btn:hover{background:var(--surface-2);box-shadow:var(--sh-sm)}
+  .btn.primary{background:var(--primary-grad);color:#fff;border-color:transparent;box-shadow:var(--sh-glow)}
+  .btn.primary:hover{filter:brightness(1.05)}
+  .btn.ghost{background:transparent}
+  .row{display:flex;gap:10px;margin-top:4px}
+
+  /* ===== 管理端 Studio ===== */
+  .studio-win{right:46px;top:78px;width:560px;height:600px}
+  .studio-body{display:flex;flex:1;overflow:hidden}
+  .rail{
+    width:170px;flex:none;border-right:1px solid var(--border);background:var(--surface-2);padding:14px 10px;overflow:auto;
+  }
+  .rail .rh{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;padding:4px 10px 8px}
+  .cat{
+    display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;font-size:13px;font-weight:600;color:var(--text-2);
+    cursor:pointer;transition:.16s;margin-bottom:2px;
+  }
+  .cat:hover{background:#fff;color:var(--text)}
+  .cat.active{background:#fff;color:var(--primary);box-shadow:var(--sh-sm)}
+  .cat .cnt{margin-left:auto;font-size:11px;font-weight:600;color:var(--text-3);background:var(--surface-3);padding:2px 7px;border-radius:20px}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .toolbar{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+  .search{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text-3);font-size:13px}
+  .search svg{width:15px;height:15px;flex:none}
+  .tbl-wrap{flex:1;overflow:auto;padding:8px 12px 14px}
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  thead th{
+    position:sticky;top:0;background:var(--surface);text-align:left;font-size:11px;font-weight:700;letter-spacing:.05em;
+    color:var(--text-3);text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--border);
+  }
+  tbody td{padding:11px 12px;font-size:13px;border-bottom:1px solid var(--border);font-weight:600}
+  tbody tr{transition:.15s}
+  tbody tr:hover{background:var(--surface-2)}
+  .chk{width:17px;height:17px;border-radius:6px;border:2px solid var(--border-strong);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  .chk.on{background:var(--primary);border-color:var(--primary)}
+  .chk.on svg{width:11px;height:11px;color:#fff}
+  .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+  .pill.on{background:var(--success-soft);color:var(--success)}
+  .pill.off{background:var(--surface-3);color:var(--text-3)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .lvl{font-weight:700;font-size:12px}
+  .lvl.hi{color:var(--danger)} .lvl.mid{color:var(--warn)} .lvl.lo{color:var(--text-3)}
+
+  /* 新增词模态 */
+  .modal-mask{position:absolute;inset:0;background:rgba(22,27,38,.28);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:30}
+  .modal{width:380px;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-lg);border:1px solid var(--border);overflow:hidden}
+  .modal-head{padding:18px 20px;border-bottom:1px solid var(--border);font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px}
+  .modal-head .x{margin-left:auto;cursor:pointer;color:var(--text-3)}
+  .modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+  .fld label{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text-2);margin-bottom:7px}
+  .fld input,.fld select{
+    width:100%;font-family:var(--font);font-size:13.5px;font-weight:600;color:var(--text);
+    padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);outline:none;transition:.16s;
+  }
+  .fld input:focus,.fld select:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px var(--primary-soft)}
+  .modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+  /* ===== 悬浮球 Orb ===== */
+  .orb{
+    position:absolute;right:64px;bottom:64px;width:60px;height:60px;border-radius:50%;
+    background:var(--primary-grad);box-shadow:0 6px 20px rgba(79,70,229,.26);cursor:pointer;z-index:40;
+    display:flex;align-items:center;justify-content:center;transition:transform .25s cubic-bezier(.16,1,.3,1);
+  }
+  .orb:hover{transform:scale(1.06)}
+  .orb svg{width:25px;height:25px;color:#fff;filter:drop-shadow(0 2px 3px rgba(0,0,0,.22))}
+  .orb::after{
+    content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--primary-2);
+    opacity:.35;animation:ring 2.6s ease-out infinite;
+  }
+  @keyframes ring{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.25);opacity:0}}
+  .orb.alert{background:linear-gradient(135deg,#FB7185,#E5484D);box-shadow:0 10px 34px rgba(229,72,77,.4)}
+  .orb.alert::after{border-color:#E5484D}
+
+  /* ===== 右键菜单（玻璃） ===== */
+  .menu{
+    position:absolute;right:140px;bottom:140px;width:212px;z-index:45;
+    background:var(--glass);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+    border:1px solid var(--glass-border);border-radius:var(--r-md);box-shadow:var(--sh-lg);padding:7px;
+  }
+  .menu .mi{
+    display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;font-size:13.5px;font-weight:600;
+    color:var(--text);cursor:pointer;transition:.14s;
+  }
+  .menu .mi:hover{background:rgba(79,70,229,.1);color:var(--primary)}
+  .menu .mi svg{width:16px;height:16px;color:var(--text-2)}
+  .menu .mi:hover svg{color:var(--primary)}
+  .menu .mi.danger{color:var(--danger)} .menu .mi.danger:hover{background:var(--danger-soft);color:var(--danger)}
+  .menu .sep{height:1px;background:var(--border);margin:5px 6px}
+
+  /* ===== 告警弹窗（玻璃） ===== */
+  .alert{
+    position:absolute;right:64px;bottom:150px;width:340px;z-index:46;
+    background:var(--glass);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+    border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--sh-lg);overflow:hidden;
+  }
+  .alert-head{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid rgba(231,233,240,.7)}
+  .alert-ic{width:38px;height:38px;border-radius:11px;background:var(--danger-soft);color:var(--danger);display:flex;align-items:center;justify-content:center;flex:none}
+  .alert-ic svg{width:20px;height:20px}
+  .alert-head .t{font-size:14.5px;font-weight:700}
+  .alert-head .s{font-size:12px;color:var(--text-3);font-weight:600}
+  .alert-body{padding:15px 18px}
+  .alert-kw{display:inline-flex;align-items:center;gap:7px;background:var(--danger-soft);color:var(--danger);font-weight:700;font-size:13px;padding:6px 11px;border-radius:9px;margin-bottom:11px}
+  .alert-meta{font-size:12.5px;color:var(--text-2);font-weight:600;line-height:1.7}
+  .alert-meta b{color:var(--text);font-weight:700}
+  .alert-snip{margin-top:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--text-2);line-height:1.6}
+  .alert-snip mark{background:#FFF1A8;color:#7a5b00;font-weight:700;padding:0 2px;border-radius:3px}
+  .alert-foot{display:flex;gap:9px;padding:13px 18px;border-top:1px solid rgba(231,233,240,.7)}
+  .alert-foot .btn{flex:1;justify-content:center;padding:9px}
+
+  /* ===== 设计令牌图例 ===== */
+  .legend{
+    position:absolute;left:46px;bottom:30px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--r-lg);box-shadow:var(--sh-md);padding:14px 16px;display:flex;gap:22px;align-items:center;z-index:20;
+  }
+  .legend .blk{display:flex;flex-direction:column;gap:7px}
+  .legend .blk .lh{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase}
+  .swatches{display:flex;gap:6px}
+  .sw{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);box-shadow:var(--sh-sm)}
+  .type-scale{display:flex;flex-direction:column;gap:3px}
+  .type-scale span{font-weight:700;line-height:1.1}
+  .type-scale .a{font-size:18px} .type-scale .b{font-size:14px;color:var(--text-2)} .type-scale .c{font-size:12px;color:var(--text-3);font-weight:600}
+
+  .hint{position:absolute;right:46px;bottom:30px;font-size:12px;color:var(--text-3);font-weight:600;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 14px;box-shadow:var(--sh-sm);z-index:20}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">WORDGUARD · <b>PREMIUM MODERN</b> · 高保真原型（亮色）</div>
+  <div class="windows">
+
+    <!-- ===== 状态面板 ===== -->
+    <div class="win status-win">
+      <div class="win-head">
+        <div class="brand">
+          <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg></span>
+          雷犀 状态面板
+        </div>
+        <span class="win-sub">WordGuard Client</span>
+        <div class="head-spacer"></div>
+        <span class="live"><span class="dot"></span>监控中</span>
+        <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+        <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="tabs">
+        <div class="tab active">监控中</div>
+        <div class="tab">词库</div>
+        <div class="tab">告警设置</div>
+      </div>
+      <div class="tab-body">
+        <div class="stat-row">
+          <div class="stat"><div class="k">监控窗口</div><div class="v">2<small>个</small></div></div>
+          <div class="stat"><div class="k">今日命中</div><div class="v" style="color:var(--danger)">7</div></div>
+          <div class="stat"><div class="k">词库总量</div><div class="v">186<small>词</small></div></div>
+        </div>
+
+        <div class="card">
+          <h4>监控目标 <span class="tag">白名单</span></h4>
+          <div class="target">
+            <span class="app-ic">💬</span>
+            <div><div class="nm">微信 WeChat</div><div style="font-size:11.5px;color:var(--text-3);font-weight:600">WeChat.exe</div></div>
+            <span class="st"><span class="dot" style="background:var(--success);box-shadow:0 0 0 4px var(--success-soft)"></span>已监控</span>
+          </div>
+          <div class="target">
+            <span class="app-ic">🐧</span>
+            <div><div class="nm">QQ</div><div style="font-size:11.5px;color:var(--text-3);font-weight:600">QQ.exe</div></div>
+            <span class="st"><span class="dot" style="background:var(--success);box-shadow:0 0 0 4px var(--success-soft)"></span>已监控</span>
+          </div>
+          <div class="row"><button class="btn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>添加程序</button></div>
+        </div>
+
+        <div class="card">
+          <h4>最近命中 <span class="tag">实时</span></h4>
+          <div class="feed">
+            <div class="feed-item">
+              <span class="feed-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+              <div><div class="t">命中「绝对化用语 · 最低价」</div><div class="d">微信 · 客户「李先生」 · 14:02</div></div>
+            </div>
+            <div class="feed-item">
+              <span class="feed-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+              <div><div class="t">命中「保证 · 包过」</div><div class="d">QQ · 客户「Wang」 · 13:47</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 管理端 Studio ===== -->
+    <div class="win studio-win">
+      <div class="win-head">
+        <div class="brand">
+          <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg></span>
+          词库管理端
+        </div>
+        <span class="win-sub">Studio</span>
+        <div class="head-spacer"></div>
+        <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="studio-body">
+        <div class="rail">
+          <div class="rh">分类</div>
+          <div class="cat active">全部违禁词 <span class="cnt">186</span></div>
+          <div class="cat">绝对化用语 <span class="cnt">42</span></div>
+          <div class="cat">虚假承诺 <span class="cnt">38</span></div>
+          <div class="cat">敏感政治 <span class="cnt">27</span></div>
+          <div class="cat">医疗夸大 <span class="cnt">31</span></div>
+          <div class="cat">金融误导 <span class="cnt">29</span></div>
+          <div class="cat">+ 新建分类</div>
+        </div>
+        <div class="main">
+          <div class="toolbar">
+            <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>搜索违禁词…</div>
+            <button class="btn primary"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>新增</button>
+            <button class="btn">导出</button>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th style="width:34px"></th><th>违禁词</th><th>分类</th><th>级别</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td><span class="chk on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span></td><td>最低价</td><td>绝对化用语</td><td class="lvl.mid">中</td><td><span class="pill on">启用</span></td></tr>
+                <tr><td><span class="chk on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span></td><td>绝对化用语</td><td>绝对化用语</td><td class="lvl.hi">高</td><td><span class="pill on">启用</span></td></td></tr>
+                <tr><td><span class="chk"></span></td><td>包过</td><td>虚假承诺</td><td class="lvl.hi">高</td><td><span class="pill off">禁用</span></td></tr>
+                <tr><td><span class="chk on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span></td><td>百分百</td><td>绝对化用语</td><td class="lvl.mid">中</td><td><span class="pill on">启用</span></td></td></tr>
+                <tr><td><span class="chk"></span></td><td>国家级</td><td>敏感政治</td><td class="lvl.hi">高</td><td><span class="pill warn">待审</span></td></tr>
+                <tr><td><span class="chk on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></span></td><td>根治</td><td>医疗夸大</td><td class="lvl.lo">低</td><td><span class="pill on">启用</span></td></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 悬浮球 ===== -->
+    <div class="orb" id="orb" title="拖拽移动 · 双击打开面板 · 右键菜单">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
+    </div>
+
+    <!-- ===== 右键菜单 ===== -->
+    <div class="menu" id="menu">
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>打开状态面板</div>
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>监控日志</div>
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>模拟告警测试</div>
+      <div class="sep"></div>
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a7 7 0 0 0-1.7-1L15.5 3h-4l-.3 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.5L4 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7 7 0 0 0 1.7 1L11.5 21h4l.3-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg>设置</div>
+      <div class="mi danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>退出</div>
+    </div>
+
+    <!-- ===== 告警弹窗 ===== -->
+    <div class="alert" id="alert">
+      <div class="alert-head">
+        <span class="alert-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+        <div><div class="t">命中违禁词</div><div class="s">实时监控 · 已拦截</div></div>
+      </div>
+      <div class="alert-body">
+        <span class="alert-kw">⚠ 绝对化用语 · 最低价</span>
+        <div class="alert-meta">来源程序：<b>微信 WeChat</b><br>会话客户：<b>李先生</b> · 14:02</div>
+        <div class="alert-snip">客服：「我们这款是行业里<b><mark>最低价</mark></b>，保证正品，假一赔十。」</div>
+      </div>
+      <div class="alert-foot">
+        <button class="btn ghost">忽略</button>
+        <button class="btn">查看原文</button>
+        <button class="btn primary">知道了</button>
+      </div>
+    </div>
+
+    <!-- ===== 设计令牌图例 ===== -->
+    <div class="legend">
+      <div class="blk">
+        <div class="lh">主色 / 语义</div>
+        <div class="swatches">
+          <div class="sw" style="background:#4F46E5" title="主色"></div>
+          <div class="sw" style="background:#E5484D" title="危险"></div>
+          <div class="sw" style="background:#F08C00" title="警告"></div>
+          <div class="sw" style="background:#2F9E44" title="成功"></div>
+        </div>
+      </div>
+      <div class="blk">
+        <div class="lh">中性</div>
+        <div class="swatches">
+          <div class="sw" style="background:#FFFFFF;border-color:#E7E9F0"></div>
+          <div class="sw" style="background:#F6F7FB"></div>
+          <div class="sw" style="background:#EEF1F7"></div>
+          <div class="sw" style="background:#161B26"></div>
+        </div>
+      </div>
+      <div class="blk">
+        <div class="lh">字号层级</div>
+        <div class="type-scale"><span class="a">26 / 800</span><span class="b">14 / 700</span><span class="c">11 / 800 字距.06</span></div>
+      </div>
+    </div>
+
+    <div class="hint">提示：点击右下角悬浮球可收起/展开菜单与告警弹窗，感受微交互</div>
+  </div>
+</div>
+
+<script>
+  // 轻量交互：点击 orb 切换 菜单+弹窗 的显隐，模拟真实行为
+  const orb=document.getElementById('orb'), menu=document.getElementById('menu'), alert=document.getElementById('alert');
+  let open=true;
+  orb.addEventListener('click',()=>{
+    open=!open;
+    menu.style.display=open?'block':'none';
+    alert.style.display=open?'block':'none';
+  });
+  // 状态面板 tab 切换
+  document.querySelectorAll('.status-win .tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.status-win .tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

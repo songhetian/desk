@@ -1,0 +1,57 @@
+雷犀 WordGuard 客户端运行所需环境下载地址
+================================================
+
+应用说明
+--------
+- 本程序（WordGuard.Client.App.exe）基于 .NET 8 + WinForms + WebView2 构建，
+  编译方式为「依赖框架」（framework-dependent），因此本机必须先装好下面两项运行时，
+  否则双击 EXE 会报错或无法启动。
+
+------------------------------------------------
+1) .NET 8 桌面运行时（必装，含 WinForms/WPF）
+------------------------------------------------
+   程序目标框架是 net8.0-windows，必须装「Desktop Runtime」，
+   仅装基础 Runtime 无法运行 WinForms 界面。
+
+   下载页（选 Windows 桌面运行时 / Desktop Runtime，x64 或对应架构）：
+   https://dotnet.microsoft.com/download/dotnet/8.0
+
+   官方直接下载（Evergreen 在线安装包，自动选最新 8.0.x）：
+   - 64 位 (x64)：
+     https://dotnet.microsoft.com/zh-cn/download/dotnet/thank-you/runtime-desktop-8.0.19-windows-x64-installer
+   - 32 位 (x86)：
+     https://dotnet.microsoft.com/zh-cn/download/dotnet/thank-you/runtime-desktop-8.0.19-windows-x86-installer
+
+   安装完成后验证：命令行执行  dotnet --list-runtimes
+   应能看到类似  Microsoft.WindowsDesktop.App 8.0.x  的条目。
+
+------------------------------------------------
+2) Microsoft Edge WebView2 运行时（必装）
+------------------------------------------------
+   悬浮球、告警弹窗、状态面板、日志等界面都依赖 WebView2 渲染网页。
+   Win10/Win11 多数已内置；若启动后界面空白或报 WebView2 相关错误，请手动安装。
+
+   官方下载页（Evergreen Bootstrapper / Standalone Installer）：
+   https://developer.microsoft.com/zh-cn/microsoft-edge/webview2/
+
+   官方直接下载：
+   - Evergreen Bootstrapper（在线，推荐，自动保持更新）：
+     https://go.microsoft.com/fwlink/p/?LinkId=2124703
+   - 独立离线安装包 x64（Standalone Installer，适合无网/批量部署）：
+     https://go.microsoft.com/fwlink/p/?LinkId=2124947
+   - 独立离线安装包 x86：
+     https://go.microsoft.com/fwlink/p/?LinkId=2124948
+
+   安装完成后验证：在「设置 → 应用」中查看是否已有
+   “Microsoft Edge WebView2 Runtime”。
+
+------------------------------------------------
+3) 可选：.NET 8 SDK（仅当你要自己编译/调试源码时需要）
+------------------------------------------------
+   https://dotnet.microsoft.com/download/dotnet/8.0 （选 .NET SDK 8.0.x）
+
+================================================
+快速排错
+- 双击 EXE 提示“找不到 .NET Runtime”：装上面第 1 项。
+- 界面空白 / 控制台报 WebView2 初始化失败：装上面第 2 项。
+- 两者都装好后仍异常：命令行执行  dotnet --list-runtimes  确认 Desktop 运行时存在。

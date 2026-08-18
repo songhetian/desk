@@ -45,8 +45,9 @@ public sealed class AlertDedup
     /// <summary>
     /// 判断此刻是否应对该「词 + 输入框」触发告警。命中跨框冷却或已确认则返回 false（抑制）。
     /// <paramref name="now"/> 应为 UTC（内部按 UTC 归一，调用方混用本地时间也不会出错）。
+    /// <paramref name="refreshCooldown">是否刷新冷却窗口（默认 true）。兜底模式（如拼音匹配）可设为 false，避免提前命中后抑制主路径的正常告警。</paramref>
     /// </summary>
-    public bool ShouldAlert(string word, string context, DateTime now)
+    public bool ShouldAlert(string word, string context, DateTime now, bool refreshCooldown = true)
     {
         now = now.ToUniversalTime();
         var key = (word, context);
@@ -68,8 +69,9 @@ public sealed class AlertDedup
             if (_cooldownUntil.TryGetValue(word, out var until) && now < until)
                 return false;
 
-            // 刷新跨框冷却窗口
-            _cooldownUntil[word] = now + _cooldown;
+            // 刷新跨框冷却窗口（兜底模式可跳过，避免提前命中影响主路径）
+            if (refreshCooldown)
+                _cooldownUntil[word] = now + _cooldown;
             return true;
         }
     }

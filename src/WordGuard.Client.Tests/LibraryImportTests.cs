@@ -141,4 +141,96 @@ public class LibraryImportTests
             if (File.Exists(dest)) File.Delete(dest);
         }
     }
+
+    [Fact]
+    public void ImportJson_overwrite_mode_replaces_existing_library()
+    {
+        var dest = Path.Combine(Path.GetTempPath(), "wg_ovw_" + System.Guid.NewGuid() + ".json");
+        try
+        {
+            var existing = new WordLibrary();
+            existing.Words.Add(new WordEntry { Text = "旧词", Severity = Severity.Low });
+            File.WriteAllText(dest, existing.ToJson());
+
+            var newLib = new WordLibrary();
+            newLib.Words.Add(new WordEntry { Text = "新词", Severity = Severity.High });
+
+            var r = new ClientLibraryImporter().ImportJson(newLib.ToJson(), dest, ImportMode.Overwrite);
+
+            Assert.True(r.Success);
+            var reloaded = WordLibrary.LoadFromFile(dest);
+            Assert.Equal(1, reloaded.Words.Count);
+            Assert.Equal("新词", reloaded.Words[0].Text);
+        }
+        finally { if (File.Exists(dest)) File.Delete(dest); }
+    }
+
+    [Fact]
+    public void ImportJson_append_mode_adds_new_words_and_keeps_existing()
+    {
+        var dest = Path.Combine(Path.GetTempPath(), "wg_app_" + System.Guid.NewGuid() + ".json");
+        try
+        {
+            var existing = new WordLibrary();
+            existing.Words.Add(new WordEntry { Text = "原有词", Severity = Severity.Low });
+            File.WriteAllText(dest, existing.ToJson());
+
+            var newLib = new WordLibrary();
+            newLib.Words.Add(new WordEntry { Text = "新增词", Severity = Severity.High });
+
+            var r = new ClientLibraryImporter().ImportJson(newLib.ToJson(), dest, ImportMode.Append);
+
+            Assert.True(r.Success);
+            var reloaded = WordLibrary.LoadFromFile(dest);
+            Assert.Equal(2, reloaded.Words.Count);
+            Assert.Contains(reloaded.Words, w => w.Text == "原有词");
+            Assert.Contains(reloaded.Words, w => w.Text == "新增词");
+        }
+        finally { if (File.Exists(dest)) File.Delete(dest); }
+    }
+
+    [Fact]
+    public void ImportJson_append_mode_skips_duplicate_words()
+    {
+        var dest = Path.Combine(Path.GetTempPath(), "wg_dup_" + System.Guid.NewGuid() + ".json");
+        try
+        {
+            var existing = new WordLibrary();
+            existing.Words.Add(new WordEntry { Text = "重复词", Category = "旧分类", Severity = Severity.Low });
+            File.WriteAllText(dest, existing.ToJson());
+
+            var newLib = new WordLibrary();
+            newLib.Words.Add(new WordEntry { Text = "重复词", Category = "新分类", Severity = Severity.High });
+            newLib.Words.Add(new WordEntry { Text = "新词", Severity = Severity.Medium });
+
+            var r = new ClientLibraryImporter().ImportJson(newLib.ToJson(), dest, ImportMode.Append);
+
+            Assert.True(r.Success);
+            var reloaded = WordLibrary.LoadFromFile(dest);
+            Assert.Equal(2, reloaded.Words.Count);
+            var dup = reloaded.Words.First(w => w.Text == "重复词");
+            Assert.Equal("旧分类", dup.Category);
+            Assert.Equal(Severity.Low, dup.Severity);
+        }
+        finally { if (File.Exists(dest)) File.Delete(dest); }
+    }
+
+    [Fact]
+    public void ImportJson_append_mode_works_when_dest_does_not_exist()
+    {
+        var dest = Path.Combine(Path.GetTempPath(), "wg_new_" + System.Guid.NewGuid() + ".json");
+        try
+        {
+            var newLib = new WordLibrary();
+            newLib.Words.Add(new WordEntry { Text = "新词", Severity = Severity.High });
+
+            var r = new ClientLibraryImporter().ImportJson(newLib.ToJson(), dest, ImportMode.Append);
+
+            Assert.True(r.Success);
+            Assert.True(File.Exists(dest));
+            var reloaded = WordLibrary.LoadFromFile(dest);
+            Assert.Equal(1, reloaded.Words.Count);
+        }
+        finally { if (File.Exists(dest)) File.Delete(dest); }
+    }
 }

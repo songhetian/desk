@@ -17,9 +17,9 @@ public sealed class ImportForm : Form
     private RadioButton _rdoAppend = null!;
     private RadioButton _rdoReplace = null!;
 
-    private static readonly Color Primary = Color.FromArgb(59, 130, 246);
-    private static readonly Color BorderGray = Color.FromArgb(229, 231, 235);
-    private static readonly Color BgGray = Color.FromArgb(249, 250, 251);
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(246, 247, 251);
 
     public ImportForm(WordLibraryEditor editor, string filePath, bool hasHeader)
     {
@@ -47,7 +47,7 @@ public sealed class ImportForm : Form
             Top = 16,
             AutoSize = true,
             Font = new Font("Microsoft YaHei UI", 11f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = Color.FromArgb(22, 27, 38),
         };
         Controls.Add(lblTitle);
 
@@ -57,7 +57,7 @@ public sealed class ImportForm : Form
             Left = 20,
             Top = 40,
             AutoSize = true,
-            ForeColor = Color.FromArgb(107, 114, 128),
+            ForeColor = Color.FromArgb(138, 146, 166),
         };
         Controls.Add(lblSub);
 
@@ -76,7 +76,7 @@ public sealed class ImportForm : Form
             Top = 12,
             AutoSize = true,
             Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = Color.FromArgb(22, 27, 38),
         };
         _rdoAppend = new RadioButton
         {
@@ -86,7 +86,7 @@ public sealed class ImportForm : Form
             AutoSize = true,
             Checked = true,
             Font = new Font("Microsoft YaHei UI", 9f),
-            ForeColor = Color.FromArgb(55, 65, 81),
+            ForeColor = Color.FromArgb(86, 95, 115),
         };
         _rdoReplace = new RadioButton
         {
@@ -95,7 +95,7 @@ public sealed class ImportForm : Form
             Top = 34,
             AutoSize = true,
             Font = new Font("Microsoft YaHei UI", 9f),
-            ForeColor = Color.FromArgb(220, 38, 38),
+            ForeColor = Color.FromArgb(229, 72, 77),
         };
         modePanel.Controls.AddRange(new Control[] { lblMode, _rdoAppend, _rdoReplace });
         Controls.Add(modePanel);
@@ -129,9 +129,9 @@ public sealed class ImportForm : Form
         _grid.Columns[3].FillWeight = 50;
         foreach (DataGridViewColumn col in _grid.Columns)
         {
-            col.HeaderCell.Style.BackColor = Color.FromArgb(249, 250, 251);
+            col.HeaderCell.Style.BackColor = Color.FromArgb(246, 247, 251);
             col.HeaderCell.Style.Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold);
-            col.HeaderCell.Style.ForeColor = Color.FromArgb(75, 85, 99);
+            col.HeaderCell.Style.ForeColor = Color.FromArgb(86, 95, 115);
             col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
         }
         foreach (var w in _result.Words)
@@ -147,7 +147,7 @@ public sealed class ImportForm : Form
             BackColor = BgGray,
             BorderStyle = BorderStyle.None,
             Font = new Font("Microsoft YaHei UI", 8.5f),
-            ForeColor = Color.FromArgb(107, 114, 128),
+            ForeColor = Color.FromArgb(138, 146, 166),
         };
         foreach (var i in _result.Issues)
             _issues.Items.Add($"第 {i.RowNumber} 行 [{Kind(i.Kind)}] {i.Message}");
@@ -167,7 +167,7 @@ public sealed class ImportForm : Form
             Size = new Size(96, 34),
             FlatStyle = FlatStyle.Flat,
             BackColor = Color.White,
-            ForeColor = Color.FromArgb(75, 85, 99),
+            ForeColor = Color.FromArgb(86, 95, 115),
         };
         btnCancel.FlatAppearance.BorderColor = BorderGray;
 

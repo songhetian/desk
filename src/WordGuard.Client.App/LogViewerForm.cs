@@ -1,11 +1,12 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using WordGuard.Core;
 
 namespace WordGuard.Client.App;
 
 /// <summary>
-/// 监控日志检索窗口（纯 WinForms）：按时间范围 + 内容关键字检索审计日志。
+/// 监控日志检索窗口（Premium 风格，纯 WinForms）：按时间范围 + 内容关键字检索审计日志。
 /// </summary>
 public sealed class LogViewerForm : Form
 {
@@ -15,6 +16,12 @@ public sealed class LogViewerForm : Form
     private TextBox _txtFilter = null!;
     private ListView _lvLogs = null!;
     private Label _lblCount = null!;
+
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryHover = Color.FromArgb(99, 102, 241);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(246, 247, 251);
+    private static readonly Color TextGray = Color.FromArgb(86, 95, 115);
 
     public LogViewerForm(AuditLogStore store)
     {
@@ -36,116 +43,204 @@ public sealed class LogViewerForm : Form
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 52,
-            Padding = new Padding(12, 10, 12, 10),
-            BackColor = Color.FromArgb(249, 250, 251),
+            Height = 56,
+            BackColor = BgGray,
         };
 
         var lblFrom = new Label
         {
             Text = "开始日期",
-            Left = 0,
-            Top = 14,
-            Width = 60,
+            Left = 20,
+            Top = 16,
             AutoSize = true,
+            ForeColor = TextGray,
+            Font = new Font("Microsoft YaHei UI", 9f),
         };
         _dpFrom = new DateTimePicker
         {
-            Left = 60,
-            Top = 10,
-            Width = 140,
+            Left = 88,
+            Top = 12,
+            Width = 130,
+            Height = 28,
             Value = DateTime.Today.AddDays(-7),
             Format = DateTimePickerFormat.Short,
+            BackColor = Color.White,
         };
 
         var lblTo = new Label
         {
             Text = "结束日期",
-            Left = 218,
-            Top = 14,
-            Width = 60,
+            Left = 236,
+            Top = 16,
             AutoSize = true,
+            ForeColor = TextGray,
+            Font = new Font("Microsoft YaHei UI", 9f),
         };
         _dpTo = new DateTimePicker
         {
-            Left = 278,
-            Top = 10,
-            Width = 140,
+            Left = 304,
+            Top = 12,
+            Width = 130,
+            Height = 28,
             Value = DateTime.Today,
             Format = DateTimePickerFormat.Short,
+            BackColor = Color.White,
         };
 
-        var lblFilter = new Label
+        // 搜索框容器
+        var searchPanel = new Panel
         {
-            Text = "关键词",
-            Left = 436,
-            Top = 14,
-            Width = 50,
+            Left = 456,
+            Top = 12,
+            Width = 220,
+            Height = 28,
+            BackColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle,
+        };
+        var lblSearchIcon = new Label
+        {
+            Text = "🔍",
+            Left = 8,
+            Top = 4,
             AutoSize = true,
+            ForeColor = TextGray,
         };
         _txtFilter = new TextBox
         {
-            Left = 486,
-            Top = 10,
-            Width = 200,
+            Left = 28,
+            Top = 4,
+            Width = 184,
+            BorderStyle = BorderStyle.None,
+            Font = new Font("Microsoft YaHei UI", 9f),
+            PlaceholderText = "关键词搜索...",
         };
+        _txtFilter.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) LoadLogs(); };
+        searchPanel.Controls.AddRange(new Control[] { lblSearchIcon, _txtFilter });
 
         var btnSearch = new Button
         {
             Text = "查询",
-            Left = 700,
-            Top = 9,
-            Width = 80,
-            Height = 26,
+            Left = 692,
+            Top = 11,
+            Size = new Size(72, 30),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Primary,
+            ForeColor = Color.White,
+            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+            Cursor = Cursors.Hand,
         };
+        btnSearch.FlatAppearance.BorderSize = 0;
+        btnSearch.MouseEnter += (_, _) => btnSearch.BackColor = PrimaryHover;
+        btnSearch.MouseLeave += (_, _) => btnSearch.BackColor = Primary;
         btnSearch.Click += (_, _) => LoadLogs();
 
         var btnExport = new Button
         {
             Text = "导出 CSV",
-            Left = 790,
-            Top = 9,
-            Width = 90,
-            Height = 26,
+            Left = 776,
+            Top = 11,
+            Size = new Size(88, 30),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = Primary,
+            Font = new Font("Microsoft YaHei UI", 9f),
+            Cursor = Cursors.Hand,
         };
+        btnExport.FlatAppearance.BorderColor = Color.FromArgb(224, 231, 255);
+        btnExport.FlatAppearance.MouseOverBackColor = Color.FromArgb(238, 240, 255);
         btnExport.Click += (_, _) => ExportCsv();
 
         topPanel.Controls.AddRange(new Control[]
         {
-            lblFrom, _dpFrom, lblTo, _dpTo, lblFilter, _txtFilter, btnSearch, btnExport,
+            lblFrom, _dpFrom, lblTo, _dpTo, searchPanel, btnSearch, btnExport,
         });
 
-        // 日志列表
+        // 日志列表（自绘 premium 风格）
         _lvLogs = new ListView
         {
             Dock = DockStyle.Fill,
             View = View.Details,
             FullRowSelect = true,
-            GridLines = true,
+            GridLines = false,
+            BorderStyle = BorderStyle.None,
             BackColor = Color.White,
+            Font = new Font("Microsoft YaHei UI", 9f),
+            OwnerDraw = true,
         };
-        _lvLogs.Columns.Add("时间", 140);
-        _lvLogs.Columns.Add("严重度", 60);
+        _lvLogs.Columns.Add("时间", 160);
+        _lvLogs.Columns.Add("严重度", 70);
         _lvLogs.Columns.Add("目标软件", 120);
-        _lvLogs.Columns.Add("窗口标题", 150);
-        _lvLogs.Columns.Add("命中词", 120);
+        _lvLogs.Columns.Add("窗口标题", 160);
+        _lvLogs.Columns.Add("命中词", 140);
         _lvLogs.Columns.Add("处理状态", 80);
         _lvLogs.Columns.Add("触发内容", 200);
+
+        // 自绘表头
+        _lvLogs.DrawColumnHeader += (_, e) =>
+        {
+            e.Graphics.FillRectangle(new SolidBrush(BgGray), e.Bounds);
+            using (var pen = new Pen(BorderGray))
+                e.Graphics.DrawLine(pen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
+            var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine;
+            TextRenderer.DrawText(e.Graphics, e.Header.Text,
+                new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+                new Rectangle(e.Bounds.X + 12, e.Bounds.Y, e.Bounds.Width - 12, e.Bounds.Height),
+                TextGray, flags);
+        };
+        _lvLogs.DrawItem += (_, e) => { /* 用 DrawSubItem 逐列画 */ };
+        _lvLogs.DrawSubItem += (_, e) =>
+        {
+            var isSelected = (e.ItemState & ListViewItemStates.Selected) == ListViewItemStates.Selected;
+            var bgColor = isSelected ? Color.FromArgb(238, 240, 255) : Color.White;
+            using (var brush = new SolidBrush(bgColor))
+                e.Graphics.FillRectangle(brush, e.Bounds);
+            using (var pen = new Pen(Color.FromArgb(238, 241, 247)))
+                e.Graphics.DrawLine(pen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
+
+            var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;
+            var textRect = new Rectangle(e.Bounds.X + 12, e.Bounds.Y, e.Bounds.Width - 12, e.Bounds.Height);
+
+            if (e.ColumnIndex == 1)
+            {
+                // 严重度：彩色标签
+                var text = e.SubItem.Text;
+                Color tagColor, tagBg;
+                switch (text)
+                {
+                    case "高": tagColor = Color.FromArgb(229, 72, 77); tagBg = Color.FromArgb(253, 236, 236); break;
+                    case "中": tagColor = Color.FromArgb(240, 140, 0); tagBg = Color.FromArgb(254, 243, 226); break;
+                    default: tagColor = Color.FromArgb(79, 70, 229); tagBg = Color.FromArgb(238, 240, 255); break;
+                }
+                var tagRect = new Rectangle(e.Bounds.X + 12, e.Bounds.Y + 7, 44, e.Bounds.Height - 14);
+                using (var tagBrush = new SolidBrush(tagBg))
+                    e.Graphics.FillRoundedRectangle(tagBrush, tagRect, 4);
+                var tagFlags = TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine;
+                TextRenderer.DrawText(e.Graphics, text,
+                    new Font("Microsoft YaHei UI", 8.5f, FontStyle.Bold),
+                    tagRect, tagColor, tagFlags);
+                return;
+            }
+
+            var textColor = isSelected ? Primary : Color.FromArgb(22, 27, 38);
+            if (e.ColumnIndex == 0) textColor = Color.FromArgb(86, 95, 115); // 时间列用浅灰
+            TextRenderer.DrawText(e.Graphics, e.SubItem.Text, e.Item.Font, textRect, textColor, flags);
+        };
 
         // 底部状态栏
         var bottomPanel = new Panel
         {
             Dock = DockStyle.Bottom,
-            Height = 28,
-            Padding = new Padding(12, 4, 12, 4),
-            BackColor = Color.FromArgb(249, 250, 251),
+            Height = 32,
+            BackColor = BgGray,
         };
         _lblCount = new Label
         {
-            Text = "共 0 条",
-            Dock = DockStyle.Left,
-            AutoSize = false,
-            Height = 20,
+            Text = "共 0 条记录",
+            Left = 20,
+            Top = 7,
+            AutoSize = true,
+            ForeColor = TextGray,
+            Font = new Font("Microsoft YaHei UI", 9f),
         };
         bottomPanel.Controls.Add(_lblCount);
 

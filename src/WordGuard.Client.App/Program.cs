@@ -62,6 +62,16 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
 
+        var primary = Color.FromArgb(79, 70, 229);
+        var primaryHover = Color.FromArgb(99, 102, 241);
+        var primaryLight = Color.FromArgb(238, 240, 255);
+        var borderGray = Color.FromArgb(231, 233, 240);
+        var bgGray = Color.FromArgb(246, 247, 251);
+        var textGray = Color.FromArgb(86, 95, 115);
+        var textDark = Color.FromArgb(22, 27, 38);
+        var danger = Color.FromArgb(220, 38, 38);
+        var dangerLight = Color.FromArgb(254, 226, 226);
+
         using var form = new Form
         {
             Text = "WordGuard 启动失败",
@@ -70,74 +80,100 @@ internal static class Program
             MaximizeBox = false,
             MinimizeBox = false,
             Width = 520,
-            Height = 320,
+            Height = 340,
             BackColor = Color.White,
             Font = new Font("Microsoft YaHei UI", 9f),
         };
 
-        // 左侧红色错误图标
+        // 顶部错误条
+        var topPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 8,
+            BackColor = danger,
+        };
+
+        // 错误图标
         var iconPanel = new Panel
         {
-            Left = 0,
-            Top = 0,
-            Width = 80,
-            Height = 260,
-            BackColor = Color.FromArgb(254, 226, 226),
+            Left = 28,
+            Top = 32,
+            Width = 48,
+            Height = 48,
+            BackColor = dangerLight,
         };
         var iconLabel = new Label
         {
-            Text = "✕",
+            Text = "!",
             Left = 0,
-            Top = 20,
-            Width = 80,
-            Height = 60,
+            Top = 0,
+            Width = 48,
+            Height = 48,
             TextAlign = ContentAlignment.MiddleCenter,
-            Font = new Font("Microsoft YaHei UI", 32f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(220, 38, 38),
+            Font = new Font("Microsoft YaHei UI", 24f, FontStyle.Bold),
+            ForeColor = danger,
         };
         iconPanel.Controls.Add(iconLabel);
 
-        // 右侧内容区
+        // 标题
         var titleLabel = new Label
         {
             Text = "WordGuard 启动失败",
-            Left = 100,
-            Top = 20,
-            Width = 390,
-            Height = 30,
+            Left = 92,
+            Top = 34,
+            AutoSize = true,
             Font = new Font("Microsoft YaHei UI", 14f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = textDark,
         };
 
+        // 消息
         var msgLabel = new Label
         {
             Text = message,
-            Left = 100,
-            Top = 55,
-            Width = 390,
-            Height = 60,
-            ForeColor = Color.FromArgb(75, 85, 99),
+            Left = 92,
+            Top = 62,
+            MaximumSize = new Size(400, 60),
+            AutoSize = true,
+            ForeColor = textGray,
         };
 
-        var hintLabel = new Label
+        // 分割线
+        var divider = new Panel
         {
-            Text = "如提示缺少 .NET 运行时，请点击下方链接下载安装：",
-            Left = 100,
-            Top = 120,
-            Width = 390,
-            Height = 25,
-            ForeColor = Color.FromArgb(75, 85, 99),
+            Left = 28,
+            Top = 140,
+            Width = 448,
+            Height = 1,
+            BackColor = borderGray,
+        };
+
+        // 运行时提示
+        var hintTitle = new Label
+        {
+            Text = "可能原因：缺少 .NET 运行环境",
+            Left = 28,
+            Top = 156,
+            AutoSize = true,
+            Font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold),
+            ForeColor = textDark,
+        };
+        var hintDesc = new Label
+        {
+            Text = "请点击下方链接下载安装 .NET 8.0 桌面运行时：",
+            Left = 28,
+            Top = 178,
+            AutoSize = true,
+            ForeColor = textGray,
         };
 
         var linkLabel = new LinkLabel
         {
             Text = downloadUrl,
-            Left = 100,
-            Top = 145,
-            Width = 390,
-            Height = 25,
-            LinkColor = Color.FromArgb(37, 99, 235),
-            ActiveLinkColor = Color.FromArgb(29, 78, 216),
+            Left = 28,
+            Top = 202,
+            AutoSize = true,
+            LinkColor = primary,
+            ActiveLinkColor = primaryHover,
             LinkBehavior = LinkBehavior.HoverUnderline,
             Font = new Font("Microsoft YaHei UI", 9.5f),
         };
@@ -155,39 +191,43 @@ internal static class Program
             catch { }
         };
 
-        var logLabel = new Label
+        // 底部按钮栏
+        var btnPanel = new Panel
         {
-            Text = "详细信息已写入 startup-error.log（位于程序目录）。\n可将该文件发给技术支持协助排查。",
-            Left = 100,
-            Top = 185,
-            Width = 390,
-            Height = 45,
-            ForeColor = Color.FromArgb(107, 114, 128),
+            Dock = DockStyle.Bottom,
+            Height = 56,
+            BackColor = bgGray,
         };
 
-        // 确定按钮
         var okButton = new Button
         {
             Text = "确定",
-            Left = 400,
-            Top = 240,
-            Width = 90,
-            Height = 32,
-            DialogResult = DialogResult.OK,
-            BackColor = Color.FromArgb(37, 99, 235),
-            ForeColor = Color.White,
+            Size = new Size(96, 34),
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Microsoft YaHei UI", 9.5f),
+            BackColor = primary,
+            ForeColor = Color.White,
+            Font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold),
             Cursor = Cursors.Hand,
         };
         okButton.FlatAppearance.BorderSize = 0;
+        okButton.MouseEnter += (_, _) => okButton.BackColor = primaryHover;
+        okButton.MouseLeave += (_, _) => okButton.BackColor = primary;
         okButton.Click += (_, _) => form.Close();
+
+        void LayoutBtn(object? s, EventArgs e)
+        {
+            okButton.Location = new Point(btnPanel.ClientSize.Width - 132, 11);
+        }
+        btnPanel.Resize += LayoutBtn;
+        btnPanel.Controls.Add(okButton);
 
         form.AcceptButton = okButton;
         form.Controls.AddRange(new Control[]
         {
-            iconPanel, titleLabel, msgLabel, hintLabel, linkLabel, logLabel, okButton
+            topPanel, iconPanel, titleLabel, msgLabel, divider,
+            hintTitle, hintDesc, linkLabel,
         });
+        form.Controls.Add(btnPanel);
 
         Application.Run(form);
     }

@@ -21,10 +21,10 @@ public sealed class WordEditForm : Form
 
     public WordEntry? Result { get; private set; }
 
-    private static readonly Color Primary = Color.FromArgb(59, 130, 246);
-    private static readonly Color PrimaryHover = Color.FromArgb(37, 99, 235);
-    private static readonly Color BorderGray = Color.FromArgb(229, 231, 235);
-    private static readonly Color BgGray = Color.FromArgb(249, 250, 251);
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryHover = Color.FromArgb(99, 102, 241);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(246, 247, 251);
 
     public WordEditForm(WordEntry? original, List<string> categoryList)
     {
@@ -51,7 +51,7 @@ public sealed class WordEditForm : Form
         // 顶部标题栏渐变
         var rect = new Rectangle(0, 0, ClientSize.Width, 56);
         using var brush = new LinearGradientBrush(rect,
-            Color.FromArgb(248, 250, 252), Color.White, LinearGradientMode.Vertical);
+            Color.FromArgb(246, 247, 251), Color.White, LinearGradientMode.Vertical);
         e.Graphics.FillRectangle(brush, rect);
         using var pen = new Pen(BorderGray);
         e.Graphics.DrawLine(pen, 0, 55, ClientSize.Width, 55);
@@ -75,7 +75,7 @@ public sealed class WordEditForm : Form
             Left = 32,
             Top = 68,
             AutoSize = true,
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = Color.FromArgb(22, 27, 38),
             Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
         };
         Controls.Add(lblWord);
@@ -99,7 +99,7 @@ public sealed class WordEditForm : Form
             Left = 32 + _txtWord.Width - 12,
             Top = 72,
             AutoSize = true,
-            ForeColor = Color.FromArgb(239, 68, 68),
+            ForeColor = Color.FromArgb(229, 72, 77),
             Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold),
         };
         Controls.Add(lblRequired);
@@ -111,7 +111,7 @@ public sealed class WordEditForm : Form
             Left = 32,
             Top = 148,
             AutoSize = true,
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = Color.FromArgb(22, 27, 38),
             Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
         };
         Controls.Add(lblCat);
@@ -135,7 +135,7 @@ public sealed class WordEditForm : Form
             Left = 90,
             Top = 148,
             AutoSize = true,
-            ForeColor = Color.FromArgb(156, 163, 175),
+            ForeColor = Color.FromArgb(138, 146, 166),
             Font = new Font("Microsoft YaHei UI", 8.5f),
         };
         Controls.Add(lblCatHint);
@@ -147,7 +147,7 @@ public sealed class WordEditForm : Form
             Left = 32,
             Top = 228,
             AutoSize = true,
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = Color.FromArgb(22, 27, 38),
             Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
         };
         Controls.Add(lblSeverity);
@@ -175,7 +175,7 @@ public sealed class WordEditForm : Form
             AutoSize = true,
             Checked = true,
             Font = new Font("Microsoft YaHei UI", 9.5f),
-            ForeColor = Color.FromArgb(55, 65, 81),
+            ForeColor = Color.FromArgb(86, 95, 115),
         };
         Controls.Add(_chkEnabled);
 
@@ -193,11 +193,11 @@ public sealed class WordEditForm : Form
             Size = new Size(96, 36),
             FlatStyle = FlatStyle.Flat,
             BackColor = Color.White,
-            ForeColor = Color.FromArgb(75, 85, 99),
+            ForeColor = Color.FromArgb(86, 95, 115),
             Font = new Font("Microsoft YaHei UI", 9f),
         };
         btnCancel.FlatAppearance.BorderColor = BorderGray;
-        btnCancel.FlatAppearance.MouseOverBackColor = Color.FromArgb(243, 244, 246);
+        btnCancel.FlatAppearance.MouseOverBackColor = Color.FromArgb(238, 241, 247);
 
         var btnOk = new Button
         {
@@ -232,7 +232,7 @@ public sealed class WordEditForm : Form
             Top = 16,
             AutoSize = true,
             Font = new Font("Microsoft YaHei UI", 11f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = Color.FromArgb(22, 27, 38),
         };
         Controls.Add(lblTitle);
 

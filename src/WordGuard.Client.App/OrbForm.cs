@@ -7,8 +7,9 @@ using WordGuard.Client;
 namespace WordGuard.Client.App;
 
 /// <summary>
-/// 悬浮球（纯 GDI 绘制，圆形窗口，无锯齿透明边）。
-/// 三态：蓝色（监控中）/ 红色脉冲（告警）/ 黄色（离线）。
+/// 悬浮球（Premium 风格，纯 GDI 绘制）。
+/// 圆形玻璃质感 + 柔光阴影 + W 字母图标。
+/// 三态：靛蓝（监控中）/ 红色脉冲（告警）/ 琥珀（离线）。
 /// 支持拖拽、单击打开状态面板、双击打开设置、右键菜单。
 /// </summary>
 public sealed class OrbForm : Form
@@ -21,6 +22,7 @@ public sealed class OrbForm : Form
     private float _pulsePhase;
     private int _flashCount;
     private bool _flashVisible = true;
+    private bool _hovering;
 
     public Action? OnOrbDoubleClick { get; set; }
     public Action? OnOrbClick { get; set; }
@@ -29,11 +31,9 @@ public sealed class OrbForm : Form
     public Action? OnShowLog { get; set; }
     public Action? OnSimulate { get; set; }
 
-    /// <summary>获取未确认告警数（用于右上角 badge 显示）。</summary>
     public Func<int>? GetUnacknowledgedCount { get; set; }
 
     private ContextMenuStrip? _orbMenu;
-
     private int _lastBadgeCount = -1;
 
     // 拖拽状态
@@ -43,17 +43,27 @@ public sealed class OrbForm : Form
     private bool _leftMouseDown;
     private const int DragThreshold = 4;
 
-    // Win32
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateRoundRectRgn(int x1, int y1, int x2, int y2, int rx, int ry);
-
     [DllImport("gdi32.dll")]
     private static extern IntPtr CreateEllipticRgn(int x1, int y1, int x2, int y2);
 
     [DllImport("user32.dll")]
     private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
 
-    private const int SIZE = 56;
+    private const int SIZE = 64;
+
+    // Premium 色板
+    private static readonly Color PrimaryLight = Color.FromArgb(129, 140, 248);
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryDark = Color.FromArgb(67, 56, 202);
+    private static readonly Color PrimaryDeeper = Color.FromArgb(55, 48, 163);
+
+    private static readonly Color AlertLight = Color.FromArgb(252, 165, 165);
+    private static readonly Color Alert = Color.FromArgb(239, 68, 68);
+    private static readonly Color AlertDark = Color.FromArgb(185, 28, 28);
+
+    private static readonly Color AmberLight = Color.FromArgb(251, 191, 36);
+    private static readonly Color Amber = Color.FromArgb(217, 119, 6);
+    private static readonly Color AmberDark = Color.FromArgb(146, 64, 14);
 
     public OrbForm(OrbStateController orb)
     {
@@ -64,10 +74,12 @@ public sealed class OrbForm : Form
         StartPosition = FormStartPosition.Manual;
         Text = "";
         DoubleBuffered = true;
+        BackColor = Color.Magenta;
+        TransparencyKey = Color.Magenta;
 
-        Size = new Size(SIZE, SIZE);
+        Size = new Size(SIZE + 12, SIZE + 12); // 留边给阴影
         var screen = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
-        Location = new Point(screen.Right - SIZE - 20, screen.Bottom - SIZE - 20);
+        Location = new Point(screen.Right - SIZE - 28, screen.Bottom - SIZE - 28);
 
         _stateTimer = new System.Windows.Forms.Timer { Interval = 200 };
         _stateTimer.Tick += (_, _) => PushState();
@@ -77,11 +89,10 @@ public sealed class OrbForm : Form
         {
             if (_lastPushed == OrbState.Alert)
             {
-                _pulsePhase += 0.12f;
+                _pulsePhase += 0.1f;
                 if (_pulsePhase > 6.28f) _pulsePhase = 0;
                 Invalidate();
             }
-            // 检查 badge 数量变化
             var count = GetUnacknowledgedCount?.Invoke() ?? 0;
             if (count != _lastBadgeCount)
             {
@@ -108,11 +119,8 @@ public sealed class OrbForm : Form
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
-
-        // 设置圆形窗口区域（真正的圆形，不是透明色抠图，无锯齿）
-        var hRgn = CreateEllipticRgn(0, 0, SIZE, SIZE);
+        var hRgn = CreateEllipticRgn(0, 0, SIZE + 12, SIZE + 12);
         SetWindowRgn(Handle, hRgn, true);
-
         _stateTimer.Start();
         _pulseTimer.Start();
     }
@@ -125,7 +133,20 @@ public sealed class OrbForm : Form
             RenderMode = ToolStripRenderMode.System,
         };
         _orbMenu.Items.AddRange(items);
-        // 不用 ContextMenuStrip 属性（圆形区域可能导致右键异常），改用手动触发
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        _hovering = true;
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        _hovering = false;
+        Invalidate();
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
@@ -149,14 +170,12 @@ public sealed class OrbForm : Form
             if (Math.Abs(dx) > DragThreshold || Math.Abs(dy) > DragThreshold)
                 _isDragging = true;
         }
-
         if (_isDragging)
         {
             var dx = Cursor.Position.X - _dragStart.X;
             var dy = Cursor.Position.Y - _dragStart.Y;
             Location = new Point(_formStart.X + dx, _formStart.Y + dy);
         }
-
         base.OnMouseMove(e);
     }
 
@@ -201,152 +220,153 @@ public sealed class OrbForm : Form
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.CompositingQuality = CompositingQuality.HighQuality;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        g.PixelOffsetMode = PixelOffsetMode.Half;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-        // 闪烁时不画（快速闪烁效果）
+        g.Clear(Color.Magenta);
+
         if (!_flashVisible) return;
 
-        var cx = SIZE / 2;
-        var cy = SIZE / 2;
-        var r = SIZE / 2 - 1;
+        var offsetX = 6;
+        var offsetY = 6;
+        var cx = offsetX + SIZE / 2;
+        var cy = offsetY + SIZE / 2;
+        var r = SIZE / 2f;
 
-        (Color cInner, Color cOuter, Color cBorder) = _lastPushed switch
+        (Color cTop, Color cMid, Color cBottom, Color cBorder) = _lastPushed switch
         {
-            OrbState.Alert => (
-                Color.FromArgb(254, 202, 202),
-                Color.FromArgb(220, 38, 38),
-                Color.FromArgb(185, 28, 28)
-            ),
-            OrbState.Offline => (
-                Color.FromArgb(254, 240, 138),
-                Color.FromArgb(217, 119, 6),
-                Color.FromArgb(180, 83, 9)
-            ),
-            _ => (
-                Color.FromArgb(191, 219, 254),
-                Color.FromArgb(37, 99, 235),
-                Color.FromArgb(29, 78, 216)
-            ),
+            OrbState.Alert => (AlertLight, Alert, AlertDark, Color.FromArgb(153, 27, 27)),
+            OrbState.Offline => (AmberLight, Amber, AmberDark, Color.FromArgb(120, 53, 15)),
+            _ => (PrimaryLight, Primary, PrimaryDark, PrimaryDeeper),
         };
 
-        // ---- 告警状态：脉冲外圈（呼吸效果）----
+        var scale = _hovering ? 1.05f : 1f;
+        var drawR = r * scale;
+        var drawX = cx - drawR;
+        var drawY = cy - drawR;
+        var drawSize = drawR * 2;
+
+        // ---- 柔光阴影 ----
+        for (int i = 4; i >= 0; i--)
+        {
+            var shadowR = drawR + 3 + i * 1.5f;
+            var alpha = 20 - i * 4;
+            using var shadowPen = new Pen(Color.FromArgb(alpha, 0, 0, 0), 3);
+            g.DrawEllipse(shadowPen, cx - shadowR, cy - shadowR + 1 + i, shadowR * 2, shadowR * 2);
+        }
+
+        // ---- 告警脉冲环 ----
         if (_lastPushed == OrbState.Alert)
         {
             var pulse = (float)(0.5 + 0.5 * Math.Sin(_pulsePhase));
-            var pulseR = r - 2 - pulse * 3;
-            var pulseAlpha = (int)(80 + pulse * 80);
-            using var pulsePen = new Pen(Color.FromArgb(pulseAlpha, 255, 255, 255), 2.5f);
-            g.DrawEllipse(pulsePen, cx - pulseR, cy - pulseR, 2 * pulseR, 2 * pulseR);
+            var pulseR = drawR + 6 + pulse * 8;
+            var pulseAlpha = (int)(40 + pulse * 60);
+            using var pulsePen = new Pen(Color.FromArgb(pulseAlpha, Alert.R, Alert.G, Alert.B), 2.5f);
+            g.DrawEllipse(pulsePen, cx - pulseR, cy - pulseR, pulseR * 2, pulseR * 2);
         }
 
-        // ---- 主球体（路径渐变）----
+        // ---- 玻璃质感球体（多层渐变）----
+        var bodyRect = new RectangleF(drawX, drawY, drawSize, drawSize);
+
+        // 底色（径向渐变：左下深 → 右上浅）
         using var path = new GraphicsPath();
-        path.AddEllipse(cx - r, cy - r, 2 * r, 2 * r);
-        using var brush = new PathGradientBrush(path)
+        path.AddEllipse(bodyRect);
+        using var bodyBrush = new PathGradientBrush(path)
         {
-            CenterColor = cInner,
-            SurroundColors = new[] { cOuter },
-            CenterPoint = new PointF(cx - r * 0.3f, cy - r * 0.35f),
+            CenterColor = cTop,
+            SurroundColors = new[] { cBottom },
+            CenterPoint = new PointF(cx - drawR * 0.25f, cy - drawR * 0.3f),
         };
-        g.FillEllipse(brush, cx - r, cy - r, 2 * r, 2 * r);
+        g.FillEllipse(bodyBrush, bodyRect);
 
-        // ---- 细边框（增加精致感）----
+        // 中部加强色
+        var midRect = new RectangleF(drawX + 2, drawY + drawR * 0.2f, drawSize - 4, drawR * 0.9f);
+        using var midPath = new GraphicsPath();
+        midPath.AddEllipse(midRect);
+        using var midBrush = new PathGradientBrush(midPath)
+        {
+            CenterColor = Color.FromArgb(80, 255, 255, 255),
+            SurroundColors = new[] { Color.FromArgb(0, 255, 255, 255) },
+        };
+        g.FillEllipse(midBrush, midRect);
+
+        // 边框
         using var borderPen = new Pen(cBorder, 1.5f);
-        g.DrawEllipse(borderPen, cx - r + 0.5f, cy - r + 0.5f, 2 * r - 1, 2 * r - 1);
+        g.DrawEllipse(borderPen, drawX + 0.5f, drawY + 0.5f, drawSize - 1, drawSize - 1);
 
-        // ---- 顶部高光（椭圆光斑）----
-        var hlRect = new RectangleF(cx - r * 0.45f, cy - r * 0.7f, r * 0.65f, r * 0.45f);
+        // 内描边（高光边）
+        using var innerPen = new Pen(Color.FromArgb(120, 255, 255, 255), 1f);
+        g.DrawEllipse(innerPen, drawX + 2.5f, drawY + 2.5f, drawSize - 5, drawSize - 5);
+
+        // ---- 顶部大高光 ----
+        var hlW = drawR * 0.7f;
+        var hlH = drawR * 0.45f;
+        var hlX = cx - hlW * 0.6f;
+        var hlY = drawY + drawR * 0.15f;
+        var hlRect = new RectangleF(hlX, hlY, hlW, hlH);
         using var hlPath = new GraphicsPath();
         hlPath.AddEllipse(hlRect);
         using var hlBrush = new PathGradientBrush(hlPath)
         {
-            CenterColor = Color.FromArgb(200, 255, 255, 255),
+            CenterColor = Color.FromArgb(220, 255, 255, 255),
             SurroundColors = new[] { Color.FromArgb(0, 255, 255, 255) },
         };
         g.FillEllipse(hlBrush, hlRect);
 
         // ---- 底部内阴影 ----
-        var bsRect = new RectangleF(cx - r * 0.7f, cy + r * 0.15f, r * 1.4f, r * 0.6f);
+        var bsW = drawR * 1.1f;
+        var bsH = drawR * 0.5f;
+        var bsX = cx - bsW * 0.5f;
+        var bsY = cy + drawR * 0.1f;
+        var bsRect = new RectangleF(bsX, bsY, bsW, bsH);
         using var bsPath = new GraphicsPath();
         bsPath.AddEllipse(bsRect);
         using var bsBrush = new PathGradientBrush(bsPath)
         {
             CenterColor = Color.FromArgb(0, 0, 0, 0),
-            SurroundColors = new[] { Color.FromArgb(60, 0, 0, 0) },
+            SurroundColors = new[] { Color.FromArgb(50, 0, 0, 0) },
         };
         g.FillEllipse(bsBrush, bsRect);
 
-        // ---- 图标（盾牌 + 感叹号）----
-        DrawShieldIcon(g, cx, cy, _lastPushed == OrbState.Alert
-            ? Color.FromArgb(220, 38, 38)
-            : Color.FromArgb(37, 99, 235));
+        // ---- 中心 W 字母图标 ----
+        var iconText = "W";
+        var iconFont = new Font("Segoe UI", 18f, FontStyle.Bold);
+        var iconSize = g.MeasureString(iconText, iconFont);
+        using var iconBrush = new SolidBrush(Color.FromArgb(240, 255, 255, 255));
+        var iconX = cx - iconSize.Width / 2 + 1;
+        var iconY = cy - iconSize.Height / 2 + 2;
+        g.DrawString(iconText, iconFont, iconBrush, iconX, iconY);
 
-        // ---- 右上角告警计数 badge ----
+        // 图标阴影（提升立体感）
+        using var iconShadowBrush = new SolidBrush(Color.FromArgb(60, 0, 0, 0));
+        g.DrawString(iconText, iconFont, iconShadowBrush, iconX + 1, iconY + 1);
+
+        // ---- 右上角 Badge ----
         var badgeCount = GetUnacknowledgedCount?.Invoke() ?? 0;
         if (badgeCount > 0)
         {
             var badgeText = badgeCount > 99 ? "99+" : badgeCount.ToString();
-            var badgeFont = new Font("Microsoft YaHei UI", 8f, FontStyle.Bold);
+            var badgeFont = new Font("Microsoft YaHei UI", 7.5f, FontStyle.Bold);
             var textSize = g.MeasureString(badgeText, badgeFont);
 
-            // badge 背景尺寸（根据文字宽度自适应）
-            var badgeW = Math.Max(18, (int)textSize.Width + 8);
-            var badgeH = 18;
-            var badgeX = SIZE - badgeW + 2;
-            var badgeY = 2;
+            var badgeW = Math.Max(16, (int)textSize.Width + 8);
+            var badgeH = 16;
+            var badgeX = (int)(cx + drawR - badgeW * 0.4f);
+            var badgeY = (int)(drawY - 2);
 
-            // badge 背景（红色圆形/胶囊形）
-            using var badgePath = new GraphicsPath();
-            badgePath.AddEllipse(badgeX, badgeY, badgeW, badgeH);
+            // badge 背景
             using var badgeBrush = new SolidBrush(Color.FromArgb(239, 68, 68));
             g.FillEllipse(badgeBrush, badgeX, badgeY, badgeW, badgeH);
 
-            // badge 白色边框
+            // badge 边框（白色）
             using var badgePen = new Pen(Color.White, 1.5f);
             g.DrawEllipse(badgePen, badgeX + 0.5f, badgeY + 0.5f, badgeW - 1, badgeH - 1);
 
             // badge 文字
             using var textBrush = new SolidBrush(Color.White);
-            var textX = badgeX + (badgeW - textSize.Width) / 2;
-            var textY = badgeY + (badgeH - textSize.Height) / 2 - 1;
+            var textX = badgeX + (badgeW - textSize.Width) / 2f;
+            var textY = badgeY + (badgeH - textSize.Height) / 2f - 0.5f;
             g.DrawString(badgeText, badgeFont, textBrush, textX, textY);
         }
-    }
-
-    private static void DrawShieldIcon(Graphics g, int cx, int cy, Color exColor)
-    {
-        var s = 11;
-        var y0 = cy + 1;
-
-        // 盾牌路径
-        using var shield = new GraphicsPath();
-        shield.AddLine(cx, y0 - s - 1, cx + s, y0 - s + 2);
-        shield.AddLine(cx + s, y0 + 2, cx, y0 + s + 1);
-        shield.AddLine(cx, y0 + s + 1, cx - s, y0 + 2);
-        shield.AddLine(cx - s, y0 - s + 2, cx, y0 - s - 1);
-        shield.CloseFigure();
-
-        // 盾牌阴影
-        using var shadowBrush = new SolidBrush(Color.FromArgb(50, 0, 0, 0));
-        var shadowPath = (GraphicsPath)shield.Clone();
-        using var mat = new Matrix();
-        mat.Translate(0, 1.5f);
-        shadowPath.Transform(mat);
-        g.FillPath(shadowBrush, shadowPath);
-
-        // 盾牌主体（白色填充）
-        using var fillBrush = new SolidBrush(Color.White);
-        g.FillPath(fillBrush, shield);
-
-        // 盾牌边框
-        using var borderPen = new Pen(Color.FromArgb(200, 255, 255, 255), 1f);
-        g.DrawPath(borderPen, shield);
-
-        // 感叹号
-        using var exBrush = new SolidBrush(exColor);
-        g.FillRectangle(exBrush, cx - 1.3f, y0 - 6, 2.6f, 7);
-        g.FillEllipse(exBrush, cx - 1.4f, y0 + 2.5f, 2.8f, 2.8f);
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -356,11 +376,10 @@ public sealed class OrbForm : Form
         base.OnFormClosing(e);
     }
 
-    /// <summary>触发一次闪烁提醒（用于命中违禁词时）。</summary>
     public void FlashAlert()
     {
         if (IsDisposed) return;
-        _flashCount = 6; // 闪烁 3 次（6 次开关切换 = 3 个完整周期）
+        _flashCount = 6;
         _flashVisible = true;
         _flashTimer.Start();
     }

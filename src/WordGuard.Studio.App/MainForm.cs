@@ -35,12 +35,12 @@ public sealed class MainForm : Form
     private int _totalPages = 1;
     private List<WordEntry> _filteredWords = new();
 
-    private static readonly Color Primary = Color.FromArgb(59, 130, 246);
-    private static readonly Color PrimaryHover = Color.FromArgb(37, 99, 235);
-    private static readonly Color BorderGray = Color.FromArgb(229, 231, 235);
-    private static readonly Color BgGray = Color.FromArgb(249, 250, 251);
-    private static readonly Color TextGray = Color.FromArgb(107, 114, 128);
-    private static readonly Color Danger = Color.FromArgb(239, 68, 68);
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryHover = Color.FromArgb(99, 102, 241);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(246, 247, 251);
+    private static readonly Color TextGray = Color.FromArgb(86, 95, 115);
+    private static readonly Color Danger = Color.FromArgb(229, 72, 77);
 
     public MainForm(string path)
     {
@@ -75,7 +75,7 @@ public sealed class MainForm : Form
             FixedPanel = FixedPanel.Panel1,
             BorderStyle = BorderStyle.None,
         };
-        split.Panel1.BackColor = Color.FromArgb(248, 250, 252);
+        split.Panel1.BackColor = Color.FromArgb(246, 247, 251);
         split.Panel2.BackColor = Color.White;
 
         // ================= 左侧分类导航 =================
@@ -86,7 +86,7 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Top,
             Height = 56,
-            BackColor = Color.FromArgb(248, 250, 252),
+            BackColor = Color.FromArgb(246, 247, 251),
             Padding = new Padding(20, 0, 16, 0),
         };
         var lblBrand = new Label
@@ -96,7 +96,7 @@ public sealed class MainForm : Form
             Top = 16,
             AutoSize = true,
             Font = new Font("Microsoft YaHei UI", 10.5f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39),
+            ForeColor = Color.FromArgb(22, 27, 38),
         };
         leftHeader.Controls.Add(lblBrand);
 
@@ -105,7 +105,7 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             BorderStyle = BorderStyle.None,
-            BackColor = Color.FromArgb(248, 250, 252),
+            BackColor = Color.FromArgb(246, 247, 251),
             DrawMode = DrawMode.OwnerDrawFixed,
             ItemHeight = 36,
             Font = new Font("Microsoft YaHei UI", 9.5f),
@@ -122,9 +122,9 @@ public sealed class MainForm : Form
 
             // 背景
             Color bgColor;
-            if (isSelected) bgColor = Color.FromArgb(219, 234, 254);
-            else if (isHover) bgColor = Color.FromArgb(229, 231, 235);
-            else bgColor = Color.FromArgb(248, 250, 252);
+            if (isSelected) bgColor = Color.FromArgb(238, 240, 255);
+            else if (isHover) bgColor = Color.FromArgb(238, 241, 247);
+            else bgColor = Color.FromArgb(246, 247, 251);
 
             using (var brush = new SolidBrush(bgColor))
                 e.Graphics.FillRoundedRectangle(brush, e.Bounds, 6);
@@ -138,7 +138,7 @@ public sealed class MainForm : Form
             }
 
             // 文本
-            var textColor = isSelected ? Primary : Color.FromArgb(55, 65, 81);
+            var textColor = isSelected ? Primary : Color.FromArgb(86, 95, 115);
             var textRect = new Rectangle(e.Bounds.X + 16, e.Bounds.Y, e.Bounds.Width - 20, e.Bounds.Height);
             var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine;
             TextRenderer.DrawText(e.Graphics, item.DisplayText, e.Font, textRect, textColor, flags);
@@ -158,7 +158,7 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Bottom,
             Height = 48,
-            BackColor = Color.FromArgb(248, 250, 252),
+            BackColor = Color.FromArgb(246, 247, 251),
             Padding = new Padding(12, 8, 12, 8),
         };
 
@@ -173,8 +173,8 @@ public sealed class MainForm : Form
             ForeColor = Primary,
             Font = new Font("Microsoft YaHei UI", 9f),
         };
-        btnAddCat.FlatAppearance.BorderColor = Color.FromArgb(219, 234, 254);
-        btnAddCat.FlatAppearance.MouseOverBackColor = Color.FromArgb(239, 246, 255);
+        btnAddCat.FlatAppearance.BorderColor = Color.FromArgb(238, 240, 255);
+        btnAddCat.FlatAppearance.MouseOverBackColor = Color.FromArgb(238, 240, 255);
         btnAddCat.Click += (_, _) => AddCategory();
 
         var btnDelCat = new Button
@@ -188,8 +188,8 @@ public sealed class MainForm : Form
             ForeColor = Danger,
             Font = new Font("Microsoft YaHei UI", 9f),
         };
-        btnDelCat.FlatAppearance.BorderColor = Color.FromArgb(254, 202, 202);
-        btnDelCat.FlatAppearance.MouseOverBackColor = Color.FromArgb(254, 242, 242);
+        btnDelCat.FlatAppearance.BorderColor = Color.FromArgb(248, 210, 210);
+        btnDelCat.FlatAppearance.MouseOverBackColor = Color.FromArgb(253, 236, 236);
         btnDelCat.Click += (_, _) => DeleteCategory();
 
         leftFooter.Controls.AddRange(new Control[] { btnAddCat, btnDelCat });
@@ -228,7 +228,7 @@ public sealed class MainForm : Form
         btnAdd.Click += (_, _) => AddWord();
 
         // 批量操作：编辑、删除
-        var btnEdit = MakeToolbarButton("编辑", 152, Color.FromArgb(55, 65, 81));
+        var btnEdit = MakeToolbarButton("编辑", 152, Color.FromArgb(86, 95, 115));
         btnEdit.Click += (_, _) => EditSelected();
 
         var btnDelete = MakeToolbarButton("删除", 234, Danger);
@@ -245,7 +245,7 @@ public sealed class MainForm : Form
         };
 
         // 批量启用/禁用
-        var btnEnable = MakeToolbarButton("启用", 328, Color.FromArgb(22, 163, 74));
+        var btnEnable = MakeToolbarButton("启用", 328, Color.FromArgb(47, 158, 68));
         btnEnable.Click += (_, _) => SetSelectedEnabled(true);
 
         var btnDisable = MakeToolbarButton("禁用", 410, TextGray);
@@ -291,8 +291,8 @@ public sealed class MainForm : Form
             ForeColor = Primary,
             Font = new Font("Microsoft YaHei UI", 9f),
         };
-        btnDeploy.FlatAppearance.BorderColor = Color.FromArgb(219, 234, 254);
-        btnDeploy.FlatAppearance.MouseOverBackColor = Color.FromArgb(239, 246, 255);
+        btnDeploy.FlatAppearance.BorderColor = Color.FromArgb(238, 240, 255);
+        btnDeploy.FlatAppearance.MouseOverBackColor = Color.FromArgb(238, 240, 255);
         btnDeploy.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         btnDeploy.Click += (_, _) => ShowDeployConfig();
 
@@ -303,12 +303,12 @@ public sealed class MainForm : Form
             Top = 11,
             Size = new Size(100, 34),
             FlatStyle = FlatStyle.Flat,
-            BackColor = Color.FromArgb(243, 244, 246),
-            ForeColor = Color.FromArgb(55, 65, 81),
+            BackColor = Color.FromArgb(238, 241, 247),
+            ForeColor = Color.FromArgb(86, 95, 115),
             Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
         };
         btnSave.FlatAppearance.BorderColor = BorderGray;
-        btnSave.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 231, 235);
+        btnSave.FlatAppearance.MouseOverBackColor = Color.FromArgb(238, 241, 247);
         btnSave.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         btnSave.Click += (_, _) => Save();
 
@@ -325,7 +325,7 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Top,
             Height = 48,
-            BackColor = Color.FromArgb(249, 250, 251),
+            BackColor = Color.FromArgb(246, 247, 251),
         };
 
         // 搜索框
@@ -415,7 +415,7 @@ public sealed class MainForm : Form
         {
             Text = "",
             Size = new Size(16, 16),
-            BackColor = Color.FromArgb(249, 250, 251),
+            BackColor = Color.FromArgb(246, 247, 251),
         };
         _chkSelectAll.CheckedChanged += (_, _) =>
         {
@@ -427,7 +427,7 @@ public sealed class MainForm : Form
         // 自绘列表头（Win11 风格）
         _lvWords.DrawColumnHeader += (_, e) =>
         {
-            e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(249, 250, 251)), e.Bounds);
+            e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(246, 247, 251)), e.Bounds);
             using (var pen = new Pen(BorderGray))
                 e.Graphics.DrawLine(pen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
 
@@ -444,18 +444,18 @@ public sealed class MainForm : Form
             TextRenderer.DrawText(e.Graphics, e.Header.Text,
                 new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
                 new Rectangle(e.Bounds.X + 12, e.Bounds.Y, e.Bounds.Width - 12, e.Bounds.Height),
-                Color.FromArgb(75, 85, 99), flags);
+                Color.FromArgb(86, 95, 115), flags);
         };
         _lvWords.DrawItem += (_, e) => { /* 用 DrawSubItem 逐列画 */ };
         _lvWords.DrawSubItem += (_, e) =>
         {
             var isSelected = (e.ItemState & ListViewItemStates.Selected) == ListViewItemStates.Selected;
-            var bgColor = isSelected ? Color.FromArgb(219, 234, 254) : Color.White;
+            var bgColor = isSelected ? Color.FromArgb(238, 240, 255) : Color.White;
             using (var brush = new SolidBrush(bgColor))
                 e.Graphics.FillRectangle(brush, e.Bounds);
 
             // 底部细线分隔
-            using (var pen = new Pen(Color.FromArgb(243, 244, 246)))
+            using (var pen = new Pen(Color.FromArgb(238, 241, 247)))
                 e.Graphics.DrawLine(pen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
 
             var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine;
@@ -480,9 +480,9 @@ public sealed class MainForm : Form
                 Color tagColor, tagBg;
                 switch (text)
                 {
-                    case "高": tagColor = Color.FromArgb(185, 28, 28); tagBg = Color.FromArgb(254, 226, 226); break;
-                    case "中": tagColor = Color.FromArgb(180, 83, 9); tagBg = Color.FromArgb(254, 243, 199); break;
-                    default: tagColor = Color.FromArgb(29, 78, 216); tagBg = Color.FromArgb(219, 234, 254); break;
+                    case "高": tagColor = Color.FromArgb(229, 72, 77); tagBg = Color.FromArgb(253, 236, 236); break;
+                    case "中": tagColor = Color.FromArgb(240, 140, 0); tagBg = Color.FromArgb(254, 243, 226); break;
+                    default: tagColor = Color.FromArgb(79, 70, 229); tagBg = Color.FromArgb(238, 240, 255); break;
                 }
                 var tagRect = new Rectangle(e.Bounds.X + 12, e.Bounds.Y + 8, 52, e.Bounds.Height - 16);
                 using (var tagBrush = new SolidBrush(tagBg))
@@ -497,7 +497,7 @@ public sealed class MainForm : Form
                 // 状态：启用/禁用 圆点 + 文字
                 var text = e.SubItem.Text;
                 var isEnabled = text == "启用";
-                var stateColor = isEnabled ? Color.FromArgb(22, 163, 74) : TextGray;
+                var stateColor = isEnabled ? Color.FromArgb(47, 158, 68) : TextGray;
                 var dotRect = new Rectangle(e.Bounds.X + 12, e.Bounds.Y + e.Bounds.Height / 2 - 4, 8, 8);
                 using (var dotBrush = new SolidBrush(stateColor))
                     e.Graphics.FillEllipse(dotBrush, dotRect);
@@ -522,15 +522,15 @@ public sealed class MainForm : Form
                 Color btnBg, btnFg, btnBorder;
                 if (word.Enabled)
                 {
-                    btnBg = Color.FromArgb(254, 242, 242);
-                    btnFg = Color.FromArgb(220, 38, 38);
-                    btnBorder = Color.FromArgb(254, 202, 202);
+                    btnBg = Color.FromArgb(253, 236, 236);
+                    btnFg = Color.FromArgb(229, 72, 77);
+                    btnBorder = Color.FromArgb(248, 210, 210);
                 }
                 else
                 {
-                    btnBg = Color.FromArgb(220, 252, 231);
-                    btnFg = Color.FromArgb(22, 163, 74);
-                    btnBorder = Color.FromArgb(187, 247, 208);
+                    btnBg = Color.FromArgb(231, 246, 236);
+                    btnFg = Color.FromArgb(47, 158, 68);
+                    btnBorder = Color.FromArgb(189, 233, 200);
                 }
 
                 using (var bgBrush = new SolidBrush(btnBg))
@@ -549,7 +549,7 @@ public sealed class MainForm : Form
             }
             else
             {
-                var textColor = isSelected ? Color.FromArgb(30, 64, 175) : Color.FromArgb(17, 24, 39);
+                var textColor = isSelected ? Color.FromArgb(79, 70, 229) : Color.FromArgb(22, 27, 38);
                 TextRenderer.DrawText(e.Graphics, e.SubItem.Text, e.Item.Font, textRect, textColor, flags);
             }
         };
@@ -619,12 +619,12 @@ public sealed class MainForm : Form
             Size = new Size(72, 28),
             FlatStyle = FlatStyle.Flat,
             BackColor = Color.White,
-            ForeColor = Color.FromArgb(55, 65, 81),
+            ForeColor = Color.FromArgb(86, 95, 115),
             Font = new Font("Microsoft YaHei UI", 9f),
             Cursor = Cursors.Hand,
         };
         _btnPrevPage.FlatAppearance.BorderColor = BorderGray;
-        _btnPrevPage.FlatAppearance.MouseOverBackColor = Color.FromArgb(249, 250, 251);
+        _btnPrevPage.FlatAppearance.MouseOverBackColor = Color.FromArgb(246, 247, 251);
         _btnPrevPage.Click += (_, _) =>
         {
             if (_currentPage > 1) { _currentPage--; RefreshWords(); }
@@ -636,12 +636,12 @@ public sealed class MainForm : Form
             Size = new Size(72, 28),
             FlatStyle = FlatStyle.Flat,
             BackColor = Color.White,
-            ForeColor = Color.FromArgb(55, 65, 81),
+            ForeColor = Color.FromArgb(86, 95, 115),
             Font = new Font("Microsoft YaHei UI", 9f),
             Cursor = Cursors.Hand,
         };
         _btnNextPage.FlatAppearance.BorderColor = BorderGray;
-        _btnNextPage.FlatAppearance.MouseOverBackColor = Color.FromArgb(249, 250, 251);
+        _btnNextPage.FlatAppearance.MouseOverBackColor = Color.FromArgb(246, 247, 251);
         _btnNextPage.Click += (_, _) =>
         {
             if (_currentPage < _totalPages) { _currentPage++; RefreshWords(); }
@@ -662,7 +662,7 @@ public sealed class MainForm : Form
         // ---- 底部状态栏 ----
         var statusBar = new StatusStrip
         {
-            BackColor = Color.FromArgb(249, 250, 251),
+            BackColor = Color.FromArgb(246, 247, 251),
             SizingGrip = false,
         };
         _lblStatus = new ToolStripStatusLabel("就绪") { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
@@ -701,7 +701,7 @@ public sealed class MainForm : Form
             Cursor = Cursors.Hand,
         };
         btn.FlatAppearance.BorderColor = BorderGray;
-        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(249, 250, 251);
+        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(246, 247, 251);
         return btn;
     }
 
@@ -812,8 +812,8 @@ public sealed class MainForm : Form
         _lblPageInfo.Text = $"第 {_currentPage} / {_totalPages} 页  ·  共 {_filteredWords.Count} 条";
         _btnPrevPage.Enabled = _currentPage > 1;
         _btnNextPage.Enabled = _currentPage < _totalPages;
-        _btnPrevPage.ForeColor = _btnPrevPage.Enabled ? Color.FromArgb(55, 65, 81) : Color.FromArgb(209, 213, 219);
-        _btnNextPage.ForeColor = _btnNextPage.Enabled ? Color.FromArgb(55, 65, 81) : Color.FromArgb(209, 213, 219);
+        _btnPrevPage.ForeColor = _btnPrevPage.Enabled ? Color.FromArgb(86, 95, 115) : Color.FromArgb(138, 146, 166);
+        _btnNextPage.ForeColor = _btnNextPage.Enabled ? Color.FromArgb(86, 95, 115) : Color.FromArgb(138, 146, 166);
     }
 
     private void UpdateSelectAllState()
@@ -1089,7 +1089,7 @@ public sealed class MainForm : Form
                 cell.Value = headers[i];
                 cell.Style.Font.Bold = true;
                 cell.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-                cell.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(59, 130, 246));
+                cell.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(79, 70, 229));
                 cell.Style.Font.Color.SetColor(Color.White);
             }
 
@@ -1251,26 +1251,92 @@ internal static class GraphicsExtensions
     }
 }
 
-/// <summary>简单输入对话框工具类。</summary>
+/// <summary>Premium 风格输入对话框。</summary>
 internal static class InputDialog
 {
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryHover = Color.FromArgb(99, 102, 241);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(246, 247, 251);
+
     public static string? Show(IWin32Window owner, string prompt, string title, string defaultValue)
     {
         using var form = new Form
         {
             Text = title,
-            Size = new Size(360, 150),
+            Size = new Size(400, 170),
             FormBorderStyle = FormBorderStyle.FixedDialog,
             StartPosition = FormStartPosition.CenterParent,
             MaximizeBox = false,
             MinimizeBox = false,
             Font = new Font("Microsoft YaHei UI", 9f),
+            BackColor = Color.White,
         };
-        var label = new Label { Left = 16, Top = 16, Text = prompt, AutoSize = true };
-        var textBox = new TextBox { Left = 16, Top = 42, Width = 312, Text = defaultValue };
-        var btnOk = new Button { Text = "确定", Left = 172, Top = 78, Size = new Size(80, 28), DialogResult = DialogResult.OK };
-        var btnCancel = new Button { Text = "取消", Left = 262, Top = 78, Size = new Size(80, 28), DialogResult = DialogResult.Cancel };
-        form.Controls.AddRange(new Control[] { label, textBox, btnOk, btnCancel });
+
+        var lblPrompt = new Label
+        {
+            Text = prompt,
+            Left = 24,
+            Top = 24,
+            AutoSize = true,
+            ForeColor = Color.FromArgb(22, 27, 38),
+            Font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold),
+        };
+
+        var textBox = new TextBox
+        {
+            Left = 24,
+            Top = 56,
+            Width = 336,
+            Height = 32,
+            Text = defaultValue,
+            BorderStyle = BorderStyle.FixedSingle,
+            Font = new Font("Microsoft YaHei UI", 10f),
+        };
+
+        var btnPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 52,
+            BackColor = BgGray,
+        };
+
+        var btnCancel = new Button
+        {
+            Text = "取消",
+            DialogResult = DialogResult.Cancel,
+            Size = new Size(88, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = Color.FromArgb(86, 95, 115),
+            Font = new Font("Microsoft YaHei UI", 9f),
+        };
+        btnCancel.FlatAppearance.BorderColor = BorderGray;
+
+        var btnOk = new Button
+        {
+            Text = "确定",
+            DialogResult = DialogResult.OK,
+            Size = new Size(88, 32),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Primary,
+            ForeColor = Color.White,
+            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+        };
+        btnOk.FlatAppearance.BorderSize = 0;
+        btnOk.MouseEnter += (_, _) => btnOk.BackColor = PrimaryHover;
+        btnOk.MouseLeave += (_, _) => btnOk.BackColor = Primary;
+
+        void LayoutBtns(object? s, EventArgs e)
+        {
+            var w = btnPanel.ClientSize.Width;
+            btnOk.Location = new Point(w - 120, 10);
+            btnCancel.Location = new Point(w - 216, 10);
+        }
+        btnPanel.Resize += LayoutBtns;
+        btnPanel.Controls.AddRange(new Control[] { btnCancel, btnOk });
+
+        form.Controls.AddRange(new Control[] { lblPrompt, textBox, btnPanel });
         form.AcceptButton = btnOk;
         form.CancelButton = btnCancel;
         return form.ShowDialog(owner) == DialogResult.OK ? textBox.Text : null;

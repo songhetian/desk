@@ -23,6 +23,16 @@ public sealed record LibraryImportResult
     public bool TooNewSchema { get; init; }
 }
 
+/// <summary>违禁词库导入模式。</summary>
+public enum ImportMode
+{
+    /// <summary>追加导入：保留现有词，新增不重复的词。</summary>
+    Append = 0,
+
+    /// <summary>覆盖导入：清空现有词库，完全替换。</summary>
+    Overwrite = 1,
+}
+
 /// <summary>
 /// 客户端导入违禁词库的校验与落盘。
 ///
@@ -74,8 +84,14 @@ public sealed class ClientLibraryImporter
         };
     }
 
-    /// <summary>从源文件导入词库到目标路径：先校验源文件，再原子写入目标（触发客户端热重载）。</summary>
+    /// <summary>从源文件导入词库到目标路径（覆盖模式）。</summary>
     public LibraryImportResult Import(string sourcePath, string destPath)
+    {
+        return Import(sourcePath, destPath, ImportMode.Overwrite);
+    }
+
+    /// <summary>从源文件导入词库到目标路径，支持追加/覆盖模式。</summary>
+    public LibraryImportResult Import(string sourcePath, string destPath, ImportMode mode)
     {
         if (!File.Exists(sourcePath))
             return Fail("词库文件不存在，无法导入");
@@ -90,26 +106,64 @@ public sealed class ClientLibraryImporter
             return Fail($"无法读取词库文件：{ex.Message}");
         }
 
-        return ImportJson(json, destPath);
+        return ImportJson(json, destPath, mode);
     }
 
-    /// <summary>从已读取的 JSON 文本导入到目标路径（浏览器端选择文件后直接传内容时用）。</summary>
+    /// <summary>从已读取的 JSON 文本导入到目标路径（覆盖模式，兼容旧调用）。</summary>
     public LibraryImportResult ImportJson(string json, string destPath)
+    {
+        return ImportJson(json, destPath, ImportMode.Overwrite);
+    }
+
+    /// <summary>从已读取的 JSON 文本导入到目标路径，支持追加/覆盖模式。</summary>
+    public LibraryImportResult ImportJson(string json, string destPath, ImportMode mode)
     {
         var validation = Validate(json);
         if (!validation.Success)
             return validation;
 
+        var newLib = validation.Library!;
+
         try
         {
-            WriteAtomic(json, destPath);
+            if (mode == ImportMode.Append && File.Exists(destPath))
+            {
+                var existing = WordLibrary.LoadFromFile(destPath);
+                var existingTexts = new HashSet<string>(
+                    existing.Words.Select(w => w.Text.Trim()),
+                    StringComparer.OrdinalIgnoreCase);
+
+                var added = 0;
+                var skipped = 0;
+                foreach (var word in newLib.Words)
+                {
+                    if (existingTexts.Add(word.Text.Trim()))
+                    {
+                        existing.Words.Add(word);
+                        added++;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+
+                WriteAtomic(existing.ToJson(), destPath);
+                return validation with
+                {
+                    WordCount = existing.Words.Count,
+                    Message = $"追加完成：新增 {added} 条，跳过重复 {skipped} 条，现共 {existing.Words.Count} 条"
+                };
+            }
+
+            WriteAtomic(newLib.ToJson(), destPath);
         }
         catch (IOException ex)
         {
             return Fail($"写入词库失败：{ex.Message}");
         }
 
-        return validation with { Message = $"已导入 {validation.WordCount} 条违禁词 ✓" };
+        return validation with { Message = $"已导入 {validation.WordCount} 条违禁词" };
     }
 
     /// <summary>原子写入：临时文件 + 替换，避免半截文件导致监控引擎崩溃。</summary>

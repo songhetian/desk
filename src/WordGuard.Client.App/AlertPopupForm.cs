@@ -7,8 +7,8 @@ using WordGuard.Core;
 namespace WordGuard.Client.App;
 
 /// <summary>
-/// 告警弹窗（蓝色 Win11 风格，紧凑精致）。
-/// 右下角浮出，8s 未操作自动消失。
+/// 告警弹窗（Premium 靛蓝色风格）。
+/// 右下角浮出，倒计时自动消失。
 /// </summary>
 public sealed class AlertPopupForm : Form
 {
@@ -17,27 +17,30 @@ public sealed class AlertPopupForm : Form
     public event Action? DetailsRequested;
     public event Action? TimedOut;
 
-    private readonly System.Windows.Forms.Timer _timeout = new() { Interval = 3_000 };
+    private readonly System.Windows.Forms.Timer _timeout = new() { Interval = 8_000 };
     private readonly System.Windows.Forms.Timer _countdown = new() { Interval = 1_000 };
-    private int _secondsLeft = 3;
+    private int _secondsLeft = 8;
     private readonly AlertEvent _evt;
     private readonly string _content;
     private readonly string _target;
-    private readonly string _windowTitle;
     private readonly string _category;
     private bool _resolved;
 
-    private static readonly Color Primary = Color.FromArgb(59, 130, 246);
-    private static readonly Color PrimaryDark = Color.FromArgb(37, 99, 235);
-    private static readonly Color BorderGray = Color.FromArgb(229, 231, 235);
-    private static readonly Color BgGray = Color.FromArgb(249, 250, 251);
+    private static readonly Color Primary = Color.FromArgb(79, 70, 229);
+    private static readonly Color PrimaryHover = Color.FromArgb(99, 102, 241);
+    private static readonly Color PrimaryLight = Color.FromArgb(238, 240, 255);
+    private static readonly Color PrimaryBg = Color.FromArgb(244, 245, 255);
+    private static readonly Color BorderGray = Color.FromArgb(231, 233, 240);
+    private static readonly Color BgGray = Color.FromArgb(248, 250, 252);
+    private static readonly Color TextPrimary = Color.FromArgb(15, 23, 42);
+    private static readonly Color TextSecondary = Color.FromArgb(71, 85, 105);
+    private static readonly Color TextMuted = Color.FromArgb(148, 163, 184);
 
     public AlertPopupForm(AlertEvent evt, string content, string target, string windowTitle, string category)
     {
         _evt = evt;
         _content = content;
         _target = target;
-        _windowTitle = windowTitle;
         _category = category;
 
         Text = "违禁词提醒";
@@ -47,11 +50,13 @@ public sealed class AlertPopupForm : Form
         StartPosition = FormStartPosition.Manual;
         ShowIcon = false;
         BackColor = Color.White;
-        Size = new Size(380, 300);
         DoubleBuffered = true;
+        Font = new Font("Microsoft YaHei UI", 9f);
+
+        Size = new Size(420, 300);
 
         var area = Screen.GetWorkingArea(Point.Empty);
-        Location = new Point(area.Right - Width - 20, area.Bottom - Height - 20);
+        Location = new Point(area.Right - Width - 24, area.Bottom - Height - 24);
 
         BuildUi();
 
@@ -66,18 +71,11 @@ public sealed class AlertPopupForm : Form
         _countdown.Start();
     }
 
-    /// <summary>
-    /// 弹窗显示时不抢走输入框焦点（用户可以继续打字）。
-    /// </summary>
     protected override bool ShowWithoutActivation => true;
 
     private const int WM_MOUSEACTIVATE = 0x0021;
     private const int MA_NOACTIVATE = 0x0003;
 
-    /// <summary>
-    /// 拦截鼠标激活消息，返回 MA_NOACTIVATE 避免点击弹窗按钮时抢走焦点，
-    /// 同时保证按钮 Click 事件能正常触发（ShowWithoutActivation 模式下首次点击会被吞）。
-    /// </summary>
     protected override void WndProc(ref Message m)
     {
         if (m.Msg == WM_MOUSEACTIVATE)
@@ -94,14 +92,9 @@ public sealed class AlertPopupForm : Form
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
-        // 圆角矩形背景 + 蓝色左边框
-        using var path = RoundedRect(0, 0, Width - 1, Height - 1, 10);
+        using var path = RoundedRect(0, 0, Width - 1, Height - 1, 12);
         using var pen = new Pen(BorderGray, 1);
         g.DrawPath(pen, path);
-
-        // 左侧蓝色装饰条（Win11 风格）
-        using var barBrush = new SolidBrush(Primary);
-        g.FillRoundedRectangle(barBrush, new Rectangle(0, 0, 4, Height), 2);
     }
 
     private static GraphicsPath RoundedRect(int x, int y, int w, int h, int r)
@@ -119,198 +112,237 @@ public sealed class AlertPopupForm : Form
 
     private void BuildUi()
     {
-        // 顶部：标题 + 关闭
-        var titleLabel = new Label
+        const int pad = 20;
+        var y = 0;
+
+        // 顶部标题栏（48px）
+        var iconBox = new Panel
         {
-            Text = "⚠ 检测到违禁词",
+            Left = pad,
+            Top = 12,
+            Size = new Size(24, 24),
+            BackColor = PrimaryLight,
+        };
+        var iconLbl = new Label
+        {
+            Text = "!",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Font = new Font("Microsoft YaHei UI", 13f, FontStyle.Bold),
+            ForeColor = Primary,
+        };
+        iconBox.Controls.Add(iconLbl);
+
+        var titleLbl = new Label
+        {
+            Text = "检测到违禁词",
             Font = new Font("Microsoft YaHei UI", 11f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39),
-            Left = 20,
+            ForeColor = TextPrimary,
+            Left = 52,
             Top = 14,
             AutoSize = true,
         };
+
         var closeBtn = new Button
         {
             Text = "✕",
-            Font = new Font("Microsoft YaHei UI", 10f),
-            ForeColor = Color.FromArgb(156, 163, 175),
-            Left = Width - 36,
-            Top = 10,
-            Size = new Size(24, 24),
+            Font = new Font("Microsoft YaHei UI", 9f),
+            ForeColor = TextMuted,
+            Size = new Size(28, 28),
             FlatStyle = FlatStyle.Flat,
             BackColor = Color.Transparent,
             TextAlign = ContentAlignment.MiddleCenter,
             Cursor = Cursors.Hand,
         };
         closeBtn.FlatAppearance.BorderSize = 0;
-        closeBtn.FlatAppearance.MouseOverBackColor = Color.FromArgb(249, 250, 251);
+        closeBtn.FlatAppearance.MouseOverBackColor = BgGray;
         closeBtn.Click += (_, _) => Resolve("ack");
+        closeBtn.Left = Width - closeBtn.Width - 10;
+        closeBtn.Top = 10;
 
-        // 命中词区域（蓝色背景卡片）
-        var words = string.Join("、", _evt.AlertWords.Take(3));
+        y = 48;
+
+        // 分割线
+        var div1 = new Panel
+        {
+            Left = 0,
+            Top = y,
+            Width = Width,
+            Height = 1,
+            BackColor = BorderGray,
+        };
+        y += 1;
+
+        // 违禁词卡片（64px）
         var wordPanel = new Panel
         {
-            Left = 20,
-            Top = 46,
-            Width = Width - 40,
-            Height = 40,
-            BackColor = Color.FromArgb(239, 246, 255),
+            Left = 0,
+            Top = y,
+            Width = Width,
+            Height = 64,
+            BackColor = PrimaryBg,
         };
         var wordIcon = new Label
         {
-            Text = "🚫",
-            Left = 10,
-            Top = 8,
+            Text = "⛔",
+            Left = pad,
+            Top = 18,
             AutoSize = true,
-            Font = new Font("Microsoft YaHei UI", 13f),
+            Font = new Font("Microsoft YaHei UI", 18f),
         };
-        var wordLabel = new Label
+        var displayWords = string.Join("、", _evt.AlertWords.Take(5));
+        var wordLbl = new Label
         {
-            Text = words,
-            Font = new Font("Microsoft YaHei UI", 10.5f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(30, 64, 175),
-            Left = 36,
-            Top = 10,
+            Text = displayWords,
+            Font = new Font("Microsoft YaHei UI", 11.5f, FontStyle.Bold),
+            ForeColor = Primary,
+            Left = 56,
+            Top = 22,
             AutoSize = true,
         };
-        wordPanel.Controls.AddRange(new Control[] { wordIcon, wordLabel });
+        wordPanel.Controls.AddRange(new Control[] { wordIcon, wordLbl });
+        y += 64;
 
-        // 来源 + 分类标签（同一行）
-        var infoLine = new Label
+        // 信息行（40px）
+        var sourceLbl = new Label
         {
             Text = $"来源：{_target}",
             Font = new Font("Microsoft YaHei UI", 8.5f),
-            ForeColor = Color.FromArgb(75, 85, 99),
-            Left = 20,
-            Top = 96,
+            ForeColor = TextSecondary,
+            Left = pad,
+            Top = y + 12,
             AutoSize = true,
         };
-        var catLabel = new Label
+
+        var catText = string.IsNullOrEmpty(_category) ? "未分类" : _category;
+        var catLbl = new Label
         {
-            Text = _category,
+            Text = catText,
             Font = new Font("Microsoft YaHei UI", 8f, FontStyle.Bold),
             ForeColor = Primary,
-            BackColor = Color.FromArgb(219, 234, 254),
-            Padding = new Padding(8, 2, 8, 2),
+            BackColor = PrimaryLight,
+            Padding = new Padding(10, 3, 10, 3),
             AutoSize = true,
         };
         using (var g = CreateGraphics())
         {
-            var catSize = g.MeasureString(_category, catLabel.Font);
-            catLabel.Left = infoLine.Right + 10;
-            catLabel.Top = 94;
+            var catSize = g.MeasureString(catText, catLbl.Font);
+            catLbl.Left = Width - (int)catSize.Width - pad - 16;
+            catLbl.Top = y + 10;
         }
+        y += 40;
 
-        // 内容预览标题
+        // 触发内容标题
         var contentTitle = new Label
         {
             Text = "触发内容",
             Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(55, 65, 81),
-            Left = 20,
-            Top = 122,
+            ForeColor = TextPrimary,
+            Left = pad,
+            Top = y + 8,
             AutoSize = true,
         };
+        y += 30;
 
-        // 内容预览框
+        // 内容框（底部预留 64px 给按钮栏）
+        var bottomH = 64;
+        var contentH = Height - y - bottomH - 12;
         var contentBox = new TextBox
         {
             Text = _content,
             ReadOnly = true,
             Multiline = true,
-            ScrollBars = ScrollBars.Vertical,
-            Left = 20,
-            Top = 142,
-            Size = new Size(Width - 40, 70),
-            Font = new Font("Microsoft YaHei UI", 9f),
+            ScrollBars = _content.Length > 100 ? ScrollBars.Vertical : ScrollBars.None,
+            Left = pad,
+            Top = y,
+            Size = new Size(Width - pad * 2, contentH),
+            Font = new Font("Microsoft YaHei UI", 9.5f),
             BackColor = BgGray,
-            BorderStyle = BorderStyle.FixedSingle,
-            ForeColor = Color.FromArgb(31, 41, 55),
+            BorderStyle = BorderStyle.None,
+            ForeColor = TextPrimary,
         };
 
-        // 按钮区
-        var btnIgnore = new Button
+        // 底部按钮栏背景
+        var bottomPanel = new Panel
         {
-            Text = "忽略",
-            Size = new Size(72, 30),
-            Font = new Font("Microsoft YaHei UI", 9f),
-            BackColor = Color.White,
-            ForeColor = Color.FromArgb(75, 85, 99),
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand,
+            Left = 0,
+            Top = Height - bottomH,
+            Width = Width,
+            Height = bottomH,
+            BackColor = BgGray,
         };
-        btnIgnore.FlatAppearance.BorderColor = BorderGray;
-        btnIgnore.FlatAppearance.MouseOverBackColor = BgGray;
-        btnIgnore.Click += (_, _) => Resolve("ignore");
-
-        var btnDetails = new Button
-        {
-            Text = "详情",
-            Size = new Size(72, 30),
-            Font = new Font("Microsoft YaHei UI", 9f),
-            BackColor = Color.White,
-            ForeColor = Primary,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand,
-        };
-        btnDetails.FlatAppearance.BorderColor = Color.FromArgb(191, 219, 254);
-        btnDetails.FlatAppearance.MouseOverBackColor = Color.FromArgb(239, 246, 255);
-        btnDetails.Click += (_, _) => { _timeout.Stop(); _countdown.Stop(); DetailsRequested?.Invoke(); };
+        var btnTop = 15;
+        var btnH = 34;
 
         var btnAck = new Button
         {
             Text = "已知悉",
-            Size = new Size(80, 30),
-            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+            Size = new Size(88, btnH),
+            Font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold),
             BackColor = Primary,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Cursor = Cursors.Hand,
         };
         btnAck.FlatAppearance.BorderSize = 0;
-        btnAck.MouseEnter += (_, _) => btnAck.BackColor = PrimaryDark;
+        btnAck.MouseEnter += (_, _) => btnAck.BackColor = PrimaryHover;
         btnAck.MouseLeave += (_, _) => btnAck.BackColor = Primary;
         btnAck.Click += (_, _) => Resolve("ack");
+        btnAck.Left = Width - btnAck.Width - pad;
+        btnAck.Top = btnTop;
 
-        var btnPanel = new Panel
+        var btnDetails = new Button
         {
-            Left = 0,
-            Top = 232,
-            Width = Width,
-            Height = 48,
+            Text = "详情",
+            Size = new Size(80, btnH),
+            Font = new Font("Microsoft YaHei UI", 9.5f),
             BackColor = Color.White,
+            ForeColor = Primary,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
         };
-        void LayoutBtns(object? s, EventArgs e)
-        {
-            var w = btnPanel.ClientSize.Width;
-            btnAck.Location = new Point(w - 28, 9);
-            btnAck.Left = w - btnAck.Width - 20;
-            btnDetails.Left = btnAck.Left - btnDetails.Width - 8;
-            btnIgnore.Left = btnDetails.Left - btnIgnore.Width - 8;
-        }
-        btnPanel.Resize += LayoutBtns;
-        btnPanel.Controls.AddRange(new Control[] { btnIgnore, btnDetails, btnAck });
-        LayoutBtns(null, EventArgs.Empty);
+        btnDetails.FlatAppearance.BorderColor = Color.FromArgb(224, 231, 255);
+        btnDetails.FlatAppearance.MouseOverBackColor = PrimaryLight;
+        btnDetails.Click += (_, _) => { _timeout.Stop(); _countdown.Stop(); DetailsRequested?.Invoke(); };
+        btnDetails.Left = btnAck.Left - btnDetails.Width - 10;
+        btnDetails.Top = btnTop;
 
-        // 底部倒计时提示
+        var btnIgnore = new Button
+        {
+            Text = "忽略",
+            Size = new Size(80, btnH),
+            Font = new Font("Microsoft YaHei UI", 9.5f),
+            BackColor = Color.White,
+            ForeColor = TextSecondary,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+        };
+        btnIgnore.FlatAppearance.BorderColor = BorderGray;
+        btnIgnore.Click += (_, _) => Resolve("ignore");
+        btnIgnore.Left = btnDetails.Left - btnIgnore.Width - 10;
+        btnIgnore.Top = btnTop;
+
+        // 倒计时
         _lblCountdown = new Label
         {
-            Text = "3 秒后自动关闭",
+            Text = "8 秒后自动关闭",
             Font = new Font("Microsoft YaHei UI", 8f),
-            ForeColor = Color.FromArgb(156, 163, 175),
-            Left = 20,
-            Top = 276,
+            ForeColor = TextMuted,
+            Left = pad,
+            Top = bottomH - 22,
             AutoSize = true,
         };
+        bottomPanel.Controls.Add(_lblCountdown);
+        bottomPanel.Controls.AddRange(new Control[] { btnIgnore, btnDetails, btnAck });
 
         Controls.AddRange(new Control[]
         {
-            titleLabel, closeBtn,
+            iconBox, titleLbl, closeBtn,
+            div1,
             wordPanel,
-            infoLine, catLabel,
+            sourceLbl, catLbl,
             contentTitle, contentBox,
-            btnPanel,
-            _lblCountdown,
+            bottomPanel,
         });
 
         AcceptButton = btnAck;
