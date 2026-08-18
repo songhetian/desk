@@ -1,0 +1,233 @@
+/* ============================================================
+   WordGuard · Arco Design Pro Design System
+   手写 CSS 复刻 Arco Design Pro 视觉语言（无 React / npm 依赖）
+   ============================================================ */
+
+:root {
+  /* ---- Brand ---- */
+  --primary: #165DFF;
+  --primary-hover: #4080FF;
+  --primary-active: #0E42D2;
+  --primary-light: #E8F3FF;
+  --primary-lighter: #F2F9FF;
+
+  /* ---- Status ---- */
+  --success: #00B42A;
+  --success-light: #E8FFEA;
+  --warning: #FF7D00;
+  --warning-light: #FFF7E8;
+  --danger: #F53F3F;
+  --danger-light: #FFECE8;
+  --info: #86909C;
+  --info-light: #F2F3F5;
+
+  /* ---- Neutral ---- */
+  --bg-page: #F7F8FA;
+  --bg-card: #FFFFFF;
+  --bg-hover: #F7F8FA;
+  --bg-th: #FAFAFA;
+  --border: #E5E6EB;
+  --border-strong: #C9CDD4;
+  --divider: #F2F3F5;
+
+  /* ---- Text ---- */
+  --text-1: #1D2129;
+  --text-2: #4E5969;
+  --text-3: #86909C;
+  --text-4: #C9CDD4;
+
+  /* ---- Radius ---- */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 12px;
+
+  /* ---- Shadow ---- */
+  --shadow-sm: 0 1px 2px rgba(29, 33, 41, 0.06);
+  --shadow-md: 0 2px 4px rgba(29, 33, 41, 0.08), 0 1px 2px rgba(29, 33, 41, 0.04);
+  --shadow-lg: 0 4px 10px rgba(29, 33, 41, 0.12), 0 2px 4px rgba(29, 33, 41, 0.04);
+  --shadow-xl: 0 8px 24px rgba(29, 33, 41, 0.16), 0 4px 8px rgba(29, 33, 41, 0.06);
+  --shadow-popup: 0 8px 32px rgba(29, 33, 41, 0.16), 0 4px 12px rgba(29, 33, 41, 0.08);
+
+  /* ---- Font ---- */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", sans-serif;
+  --font-mono: "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  --font-size: 14px;
+  --font-size-sm: 12px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --line-height: 1.5715;
+
+  /* ---- Spacing ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* ---- Transition ---- */
+  --transition: all 0.2s ease;
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  padding: 0 15px;
+  height: 32px;
+  font-size: var(--font-size);
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.5715;
+  border: 1px solid var(--primary);
+  border-radius: var(--r-sm);
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.btn:active { background: var(--primary-active); border-color: var(--primary-active); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  background: #fff;
+  color: var(--text-1);
+  border-color: var(--border-strong);
+}
+.btn-secondary:hover { background: var(--bg-hover); border-color: var(--primary); color: var(--primary); }
+.btn-secondary:active { background: var(--bg-hover); border-color: var(--primary-active); }
+
+.btn-text {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  padding: 0 8px;
+}
+.btn-text:hover { background: var(--primary-light); color: var(--primary-hover); }
+.btn-text:active { color: var(--primary-active); }
+
+.btn-danger { background: var(--danger); border-color: var(--danger); }
+.btn-danger:hover { background: #F76560; border-color: #F76560; }
+
+/* ---- Inputs ---- */
+.input, input[type="text"], input[type="date"], input[type="search"], textarea, select {
+  height: 32px;
+  padding: 0 12px;
+  font-size: var(--font-size);
+  font-family: inherit;
+  color: var(--text-1);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  transition: var(--transition);
+  outline: none;
+}
+.input:focus, input:focus, textarea:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(22, 93, 255, 0.1);
+}
+textarea { height: auto; min-height: 64px; padding: 8px 12px; line-height: 1.5; resize: vertical; }
+
+/* ---- Switch ---- */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  cursor: pointer;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .track {
+  position: absolute; inset: 0;
+  background: var(--border-strong);
+  border-radius: 22px;
+  transition: var(--transition);
+}
+.switch .track::before {
+  content: ""; position: absolute;
+  left: 2px; top: 2px;
+  width: 18px; height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: var(--transition);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+}
+.switch input:checked + .track { background: var(--primary); }
+.switch input:checked + .track::before { transform: translateX(18px); }
+
+/* ---- Card ---- */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---- Tag / Badge ---- */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 22px;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  border-radius: var(--r-xs);
+  line-height: 20px;
+}
+.tag-red { background: var(--danger-light); color: var(--danger); }
+.tag-orange { background: var(--warning-light); color: var(--warning); }
+.tag-blue { background: var(--primary-light); color: var(--primary); }
+.tag-green { background: var(--success-light); color: var(--success); }
+.tag-gray { background: var(--info-light); color: var(--info); }
+
+/* ---- Table ---- */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--font-size);
+}
+th, td {
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--divider);
+}
+th {
+  background: var(--bg-th);
+  font-weight: 500;
+  color: var(--text-2);
+  font-size: var(--font-size-sm);
+}
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background 0.15s; }
+tbody tr:hover td { background: var(--primary-lighter); }
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--info); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- Toast ---- */
+@keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }

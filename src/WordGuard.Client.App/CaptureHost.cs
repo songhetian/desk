@@ -22,12 +22,13 @@ public sealed class CaptureHost : IDisposable
     private readonly CaptureService _service;
     private readonly System.Windows.Forms.Timer _poll;
     private readonly string _debugLogPath;
+    private readonly KeyboardHookProbe? _hookProbe;
 
     // 状态回调（让 Program.cs / 托盘能展示当前状态）
     public Action<string>? OnStatusUpdate { get; set; }
 
     public CaptureHost(LibraryFileSource lib, OrbStateController orb,
-        AlertDispatcher dispatcher, AuditLogStore audit)
+        AlertDispatcher dispatcher, AuditLogStore audit, bool enableKeyboardHook = true)
     {
         _lib = lib;
         _orb = orb;
@@ -35,10 +36,38 @@ public sealed class CaptureHost : IDisposable
         _audit = audit;
         _debugLogPath = Path.Combine(AppPaths.BaseDirectory, "wordguard.debug.log");
 
-        // 真实前台窗口探测（UIA），通过可注入的探针喂给管线
-        var probe = new UiaWindowProbe();
+        var targetExes = () => lib.Metadata.Targets.Select(t => t.ExeName).ToList();
+
+        // 主方案：UIA 探测（准确度高，能拿中文）
+        var uiaProbe = new UiaWindowProbe
+        {
+            TargetExesProvider = targetExes,
+        };
+
+        var probes = new List<IWindowProbe> { uiaProbe };
+
+        // 兜底方案：键盘钩子（UIA 读不到时用，拿不到中文但能拿到英文/数字/拼音）
+        if (enableKeyboardHook)
+        {
+            try
+            {
+                _hookProbe = new KeyboardHookProbe
+                {
+                    TargetExesProvider = targetExes,
+                };
+                probes.Add(_hookProbe);
+                DebugWrite("[CaptureHost] 键盘钩子兜底已启用（UIA 读不到时降级使用）");
+            }
+            catch (Exception ex)
+            {
+                DebugWrite($"[CaptureHost] 键盘钩子启动失败（已忽略，仅用 UIA）: {ex.Message}");
+            }
+        }
+
+        var probe = new CompositeProbe(probes);
         _service = new CaptureService(probe, lib, orb, dispatcher, audit);
         _service.AlertRaised += OnAlert;
+        _service.WordHit += (_, _) => WordHit?.Invoke(this, EventArgs.Empty);
 
         lib.Reloaded += (_, status) =>
         {
@@ -67,6 +96,15 @@ public sealed class CaptureHost : IDisposable
         DebugWrite("[CaptureHost 已停止]");
     }
 
+    /// <summary>捕获统计（UI 展示健康度）。</summary>
+    public CaptureStats Stats => _service.Stats;
+
+    /// <summary>命中违禁词时触发（无论是否被抑制），用于悬浮球闪烁。</summary>
+    public event EventHandler? WordHit;
+
+    /// <summary>调试日志路径。</summary>
+    public string DebugLogPath => _debugLogPath;
+
     /// <summary>本地调试叠加目标（生产为空）：即时生效（经 LibraryFileSource 重建引擎）。</summary>
     public IEnumerable<string> ExtraTargetExes
     {
@@ -75,13 +113,38 @@ public sealed class CaptureHost : IDisposable
 
     /// <summary>捕获管线核心（"模拟命中"共用）。</summary>
     public void Feed(string text, string targetProcess, string targetProcessPath, string contextId, string windowTitle)
-        => _service.Feed(text, targetProcess, targetProcessPath, contextId, windowTitle);
+        => Feed(text, targetProcess, targetProcessPath, contextId, windowTitle, false);
+
+    /// <param name="skipDedup">true 时跳过去重冷却（用于模拟测试）。</param>
+    public void Feed(string text, string targetProcess, string targetProcessPath, string contextId, string windowTitle, bool skipDedup)
+        => _service.Feed(text, targetProcess, targetProcessPath, contextId, windowTitle, skipDedup);
 
     // ---- 告警表现：现代化弹窗 + 声音 ----
     private void OnAlert(object? _, AlertEventArgs e)
     {
+        // 自动删除：在弹窗之前执行（弹窗不抢焦点，保证输入框仍有焦点）
+        if (_lib.Metadata.AutoDelete)
+        {
+            try
+            {
+                KeyboardSimulator.SelectAllAndDelete();
+                DebugWrite("[自动删除] 已发送 Ctrl+A + Backspace");
+            }
+            catch (Exception ex)
+            {
+                DebugWrite($"[自动删除] 失败: {ex.Message}");
+            }
+        }
+
         if (e.Event.Channels.Contains(AlertChannel.Sound))
             AlertSound.Play(ResolveSoundPath(_lib.Metadata.SoundFilePath));
+
+        if (e.Event.Channels.Contains(AlertChannel.Voice))
+        {
+            VoiceAnnouncer.Speak(AlertVoice.BuildMessage(
+                e.Event.AlertWords, LookupCategory(e.Event.AlertWords.FirstOrDefault())));
+            DebugWrite($"[语音播报] 词={string.Join("/", e.Event.AlertWords)}");
+        }
 
         if (e.Event.Channels.Contains(AlertChannel.Popup))
         {
@@ -93,11 +156,13 @@ public sealed class CaptureHost : IDisposable
             {
                 foreach (var w in e.Event.ActiveWords) _lib.Acknowledge(w.Word, e.ContextId);
                 _audit.UpdateDisposition(e.AuditLogId, "客服已确认");
+                _service.AcknowledgeAlert();
                 DebugWrite($"[告警已确认] 审计Id={e.AuditLogId}");
             };
             popup.Ignored += () =>
             {
                 _audit.UpdateDisposition(e.AuditLogId, "已忽略");
+                _service.AcknowledgeAlert();
                 DebugWrite($"[告警已忽略] 审计Id={e.AuditLogId}");
             };
             popup.DetailsRequested += () =>
@@ -111,6 +176,7 @@ public sealed class CaptureHost : IDisposable
             popup.TimedOut += () =>
             {
                 _audit.UpdateDisposition(e.AuditLogId, "未确认（超时）");
+                _service.AcknowledgeAlert();
                 DebugWrite($"[告警超时] 审计Id={e.AuditLogId}");
             };
             // WinForms 定时器回调本就在 UI 线程，直接 Show 即可
@@ -146,6 +212,7 @@ public sealed class CaptureHost : IDisposable
     {
         _poll.Dispose();
         _service.Dispose();
+        _hookProbe?.Dispose();
     }
 
     /// <summary>

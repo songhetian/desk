@@ -1,0 +1,2225 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雷犀 · 词库管理系统</title>
+<style>
+/* ========== 设计令牌 ========== */
+:root[data-theme="light"]{
+  --bg:#F5F7FA;
+  --bg-2:#FFFFFF;
+  --bg-3:#F0F2F5;
+  --surface:#FFFFFF;
+  --surface-2:#FAFBFC;
+  --surface-3:#F0F2F5;
+  --border:#E4E7ED;
+  --border-strong:#DCDFE6;
+  --border-soft:#F2F3F5;
+  --text:#1F2937;
+  --text-sub:#4B5563;
+  --text-mute:#9CA3AF;
+  --text-inverse:#FFFFFF;
+  --primary:#2563EB;
+  --primary-hover:#1D4ED8;
+  --primary-active:#1E40AF;
+  --primary-bg:#EFF6FF;
+  --primary-border:#BFDBFE;
+  --success:#059669;
+  --success-bg:#ECFDF5;
+  --success-border:#A7F3D0;
+  --warning:#D97706;
+  --warning-bg:#FFFBEB;
+  --warning-border:#FDE68A;
+  --danger:#DC2626;
+  --danger-bg:#FEF2F2;
+  --danger-border:#FECACA;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.1);
+  --focus-ring:0 0 0 3px rgba(37,99,235,.15);
+}
+:root[data-theme="dark"]{
+  --bg:#111827;
+  --bg-2:#1F2937;
+  --bg-3:#374151;
+  --surface:#1F2937;
+  --surface-2:#374151;
+  --surface-3:#4B5563;
+  --border:#374151;
+  --border-strong:#4B5563;
+  --border-soft:#374151;
+  --text:#F9FAFB;
+  --text-sub:#D1D5DB;
+  --text-mute:#6B7280;
+  --text-inverse:#111827;
+  --primary:#3B82F6;
+  --primary-hover:#2563EB;
+  --primary-active:#1D4ED8;
+  --primary-bg:#1E3A8A;
+  --primary-border:#3B82F6;
+  --success:#10B981;
+  --success-bg:#064E3B;
+  --success-border:#059669;
+  --warning:#F59E0B;
+  --warning-bg:#78350F;
+  --warning-border:#D97706;
+  --danger:#EF4444;
+  --danger-bg:#7F1D1D;
+  --danger-border:#DC2626;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow:0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.5);
+  --focus-ring:0 0 0 3px rgba(59,130,246,.25);
+}
+@media (prefers-color-scheme: dark){
+  :root[data-theme="system"]{
+    --bg:#111827;--bg-2:#1F2937;--bg-3:#374151;
+    --surface:#1F2937;--surface-2:#374151;--surface-3:#4B5563;
+    --border:#374151;--border-strong:#4B5563;--border-soft:#374151;
+    --text:#F9FAFB;--text-sub:#D1D5DB;--text-mute:#6B7280;--text-inverse:#111827;
+    --primary:#3B82F6;--primary-hover:#2563EB;--primary-active:#1D4ED8;
+    --primary-bg:#1E3A8A;--primary-border:#3B82F6;
+    --success:#10B981;--success-bg:#064E3B;--success-border:#059669;
+    --warning:#F59E0B;--warning-bg:#78350F;--warning-border:#D97706;
+    --danger:#EF4444;--danger-bg:#7F1D1D;--danger-border:#DC2626;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+    --shadow:0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+    --shadow-lg:0 10px 25px rgba(0,0,0,.5);
+    --focus-ring:0 0 0 3px rgba(59,130,246,.25);
+  }
+}
+
+/* ========== 基础重置 ========== */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  display:flex;
+  flex-direction:column;
+}
+::selection{background:var(--primary);color:#fff}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-mute)}
+
+/* ========== 原型外壳 ========== */
+.demo-chrome{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:0 16px;
+  height:40px;
+  background:#1F2937;
+  color:#9CA3AF;
+  font-size:12px;
+  border-bottom:1px solid #111827;
+}
+.demo-chrome .tag{
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  color:#6B7280;
+  font-weight:500;
+}
+.demo-chrome .spacer{flex:1}
+.seg{
+  display:flex;
+  background:#374151;
+  border-radius:4px;
+  padding:2px;
+  gap:2px;
+}
+.seg button{
+  appearance:none;
+  border:0;
+  background:transparent;
+  color:#9CA3AF;
+  padding:5px 14px;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  font-family:inherit;
+  border-radius:3px;
+  transition:all .15s ease;
+}
+.seg button:hover{color:#E5E7EB}
+.seg button.on{background:#4B5563;color:#F9FAFB}
+.theme-switch{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 10px;
+  background:#374151;
+  border-radius:4px;
+  cursor:pointer;
+  transition:background .15s ease;
+}
+.theme-switch:hover{background:#4B5563}
+.theme-switch svg{width:14px;height:14px;color:#9CA3AF}
+.theme-switch span{font-size:12px;color:#9CA3AF}
+
+/* ========== 应用框架 ========== */
+.app{flex:1;display:none;flex-direction:column;min-height:0}
+.app.on{display:flex}
+
+.appbar{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  height:48px;
+  padding:0 20px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:600;
+  font-size:14px;
+  color:var(--text);
+}
+.brand-mark{
+  width:28px;
+  height:28px;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-weight:700;
+  font-size:13px;
+}
+.brand small{
+  font-weight:400;
+  color:var(--text-mute);
+  font-size:12px;
+  margin-left:2px;
+}
+.appbar .spacer{flex:1}
+.winctl{display:flex;gap:6px;align-items:center}
+.winctl i{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--border-strong);display:block;
+}
+
+/* ========== 通用控件 ========== */
+.btn{
+  appearance:none;
+  border:1px solid var(--border-strong);
+  background:var(--surface);
+  color:var(--text);
+  padding:6px 14px;
+  border-radius:6px;
+  font-size:13px;
+  font-weight:400;
+  cursor:pointer;
+  font-family:inherit;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  height:32px;
+  transition:all .15s ease;
+}
+.btn:hover{
+  background:var(--surface-2);
+  border-color:var(--text-mute);
+  color:var(--text);
+}
+.btn:active{background:var(--surface-3)}
+.btn:focus-visible{
+  outline:none;
+  box-shadow:var(--focus-ring);
+  border-color:var(--primary);
+}
+.btn.primary{
+  background:var(--primary);
+  border-color:var(--primary);
+  color:#fff;
+}
+.btn.primary:hover{
+  background:var(--primary-hover);
+  border-color:var(--primary-hover);
+}
+.btn.primary:active{background:var(--primary-active)}
+.btn.ghost{
+  background:transparent;
+  border-color:transparent;
+  color:var(--primary);
+}
+.btn.ghost:hover{background:var(--primary-bg)}
+.btn.danger{
+  color:var(--danger);
+  border-color:var(--danger-border);
+}
+.btn.danger:hover{background:var(--danger-bg)}
+.btn.danger-solid{
+  background:var(--danger);
+  border-color:var(--danger);
+  color:#fff;
+}
+.btn.danger-solid:hover{
+  background:#B91C1C;
+  border-color:#B91C1C;
+}
+.btn.sm{
+  height:28px;
+  padding:4px 10px;
+  font-size:12px;
+  border-radius:5px;
+}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.ico{width:14px;height:14px;flex:none}
+
+input[type="text"],input[type="number"],select,textarea{
+  font-family:inherit;
+  font-size:13px;
+  color:var(--text);
+  background:var(--surface);
+  border:1px solid var(--border-strong);
+  border-radius:6px;
+  padding:6px 10px;
+  outline:none;
+  width:100%;
+  height:32px;
+  transition:all .15s ease;
+}
+textarea{height:auto;padding:8px 10px;line-height:1.5;resize:vertical}
+input:hover,select:hover,textarea:hover{border-color:var(--text-mute)}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--primary);
+  box-shadow:var(--focus-ring);
+}
+input::placeholder,textarea::placeholder{color:var(--text-mute)}
+
+.field-label{
+  display:block;
+  font-size:12px;
+  font-weight:500;
+  color:var(--text-sub);
+  margin-bottom:6px;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  font-size:12px;
+  font-weight:500;
+  padding:2px 8px;
+  border-radius:4px;
+  border:1px solid transparent;
+  line-height:1.4;
+}
+.badge.high{
+  color:var(--danger);
+  background:var(--danger-bg);
+  border-color:var(--danger-border);
+}
+.badge.mid{
+  color:var(--warning);
+  background:var(--warning-bg);
+  border-color:var(--warning-border);
+}
+.badge.low{
+  color:var(--primary);
+  background:var(--primary-bg);
+  border-color:var(--primary-border);
+}
+.pill{
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-size:12px;
+  padding:2px 8px;
+  border-radius:4px;
+  background:var(--surface-3);
+  color:var(--text-sub);
+  border:1px solid var(--border);
+  line-height:1.4;
+}
+
+/* ========== 管理端 ========== */
+.studio-body{
+  flex:1;
+  display:grid;
+  grid-template-columns:220px 1fr;
+  min-height:0;
+}
+.cat-rail{
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.rail-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 12px 8px;
+}
+.rail-head .ttl{
+  font-size:11px;
+  font-weight:600;
+  color:var(--text-mute);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.cat-list{
+  flex:1;
+  overflow:auto;
+  padding:4px 8px 12px;
+}
+.cat-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 10px;
+  border-radius:4px;
+  cursor:pointer;
+  color:var(--text-sub);
+  font-size:13px;
+  transition:all .12s ease;
+  margin-bottom:2px;
+}
+.cat-item:hover{
+  background:var(--surface-2);
+  color:var(--text);
+}
+.cat-item.on{
+  background:var(--primary-bg);
+  color:var(--primary);
+  font-weight:500;
+}
+.cat-item .cnt{
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-size:11px;
+  color:var(--text-mute);
+}
+.cat-item.on .cnt{color:var(--primary)}
+
+.word-main{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  background:var(--bg);
+}
+.toolbar{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 20px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.search{
+  flex:1;
+  max-width:320px;
+  position:relative;
+}
+.search input{
+  padding-left:32px;
+  padding-right:28px;
+}
+.search .search-ico{
+  position:absolute;
+  left:9px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--text-mute);
+  width:16px;
+  height:16px;
+  pointer-events:none;
+}
+.search .clear-btn{
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform:translateY(-50%);
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:transparent;
+  border:0;
+  color:var(--text-mute);
+  cursor:pointer;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  line-height:1;
+  padding:0;
+}
+.search .clear-btn:hover{
+  background:var(--surface-3);
+  color:var(--text-sub);
+}
+.search.has-value .clear-btn{display:flex}
+.toolbar .spacer{flex:1}
+.sev-filter{width:120px}
+
+.tbl-wrap{
+  flex:1;
+  overflow:auto;
+  padding:0 20px 16px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:12px;
+}
+thead th{
+  background:var(--surface-2);
+  text-align:left;
+  font-size:12px;
+  font-weight:600;
+  color:var(--text-sub);
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+tbody td{
+  padding:10px 14px;
+  border-bottom:1px solid var(--border-soft);
+  font-size:13px;
+  vertical-align:middle;
+}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.sel{background:var(--primary-bg)}
+td.word{
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-weight:500;
+  color:var(--text);
+}
+td.op{
+  white-space:nowrap;
+  width:1%;
+  text-align:right;
+}
+td.op .btn{margin-left:6px}
+td.op .btn:first-child{margin-left:0}
+
+.toggle{
+  width:36px;
+  height:20px;
+  border-radius:10px;
+  background:var(--border-strong);
+  position:relative;
+  cursor:pointer;
+  flex:none;
+  transition:background-color .15s ease;
+}
+.toggle.on{background:var(--success)}
+.toggle::after{
+  content:"";
+  position:absolute;
+  top:2px;
+  left:2px;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:#fff;
+  transition:transform .15s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.15);
+}
+.toggle.on::after{transform:translateX(16px)}
+
+.tbl-foot{
+  flex:none;
+  padding:8px 20px;
+  color:var(--text-mute);
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-size:12px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+}
+
+.cbx{
+  width:16px;
+  height:16px;
+  border-radius:3px;
+  border:1.5px solid var(--border-strong);
+  display:inline-grid;
+  place-items:center;
+  cursor:pointer;
+  flex:none;
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+  line-height:1;
+  background:var(--surface);
+  transition:all .12s ease;
+  vertical-align:middle;
+}
+.cbx::after{content:"";display:none}
+.cbx.on::after{content:"✓";display:block}
+.cbx.on{
+  background:var(--primary);
+  border-color:var(--primary);
+}
+.cbx.mix{
+  background:var(--surface);
+  border-color:var(--primary);
+}
+.cbx.mix::after{
+  content:"";
+  display:block;
+  width:8px;
+  height:2px;
+  background:var(--primary);
+  border-radius:1px;
+}
+.cbx:focus-visible{
+  outline:none;
+  box-shadow:var(--focus-ring);
+}
+
+.bulkbar{
+  flex:none;
+  display:none;
+  align-items:center;
+  gap:12px;
+  padding:8px 20px;
+  background:var(--primary-bg);
+  border-bottom:1px solid var(--primary-border);
+}
+.bulkbar.on{display:flex}
+.bulkbar .selinfo{
+  font-size:13px;
+  font-weight:500;
+  color:var(--primary);
+}
+.bulkbar .spacer{flex:1}
+
+.x{
+  border:0;
+  background:transparent;
+  color:var(--text-mute);
+  font-size:20px;
+  cursor:pointer;
+  line-height:1;
+  padding:2px 6px;
+  border-radius:4px;
+  transition:all .12s ease;
+  width:28px;
+  height:28px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.x:hover{
+  background:var(--surface-2);
+  color:var(--text);
+}
+
+/* ========== 弹窗 ========== */
+.modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  place-items:center;
+  z-index:50;
+  background:rgba(0,0,0,.45);
+}
+.modal.on{display:grid}
+.modal .box{
+  width:min(480px,92vw);
+  background:var(--surface);
+  border-radius:8px;
+  box-shadow:var(--shadow-lg);
+  border:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  max-height:86vh;
+}
+.modal .box header{
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-weight:600;
+  font-size:14px;
+}
+.modal .box .body{
+  padding:18px;
+  overflow:auto;
+}
+.modal pre{
+  margin:14px 18px;
+  background:#1F2937;
+  color:#E5E7EB;
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-size:12px;
+  padding:14px;
+  border-radius:6px;
+  overflow:auto;
+  max-height:46vh;
+  line-height:1.6;
+}
+.modal .foot{
+  padding:12px 18px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+/* ========== 客户端 ========== */
+.client-body{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  background:var(--bg);
+}
+.statusbar{
+  flex:none;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--border);
+  border-bottom:1px solid var(--border);
+}
+.stat{
+  background:var(--surface);
+  padding:12px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.stat .k{
+  font-size:12px;
+  color:var(--text-mute);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.stat .v{
+  font-size:20px;
+  font-weight:600;
+  color:var(--text);
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+}
+.live-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--success);
+  display:inline-block;
+}
+.live-dot.pause{background:var(--warning)}
+.v.ok{color:var(--success)}
+.v.off{color:var(--text-mute)}
+.v.warn{color:var(--warning)}
+
+.tabs{
+  flex:none;
+  display:flex;
+  gap:0;
+  padding:0 20px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.tab{
+  appearance:none;
+  border:0;
+  background:transparent;
+  padding:12px 16px;
+  font-size:13px;
+  font-weight:400;
+  color:var(--text-sub);
+  cursor:pointer;
+  position:relative;
+  font-family:inherit;
+  transition:color .15s ease;
+  border-bottom:2px solid transparent;
+  margin-bottom:-1px;
+}
+.tab:hover{color:var(--text)}
+.tab.on{
+  color:var(--primary);
+  font-weight:500;
+  border-bottom-color:var(--primary);
+}
+.tab:focus-visible{
+  outline:none;
+  box-shadow:var(--focus-ring);
+  border-radius:4px 4px 0 0;
+}
+
+.pane{
+  flex:1;
+  overflow:auto;
+  padding:16px 20px;
+  display:none;
+}
+.pane.on{display:block}
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:16px 18px;
+  margin-bottom:12px;
+}
+.card h4{
+  font-size:12px;
+  font-weight:600;
+  color:var(--text-sub);
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
+.proc-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+.proc{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  cursor:pointer;
+  background:var(--surface);
+  transition:all .12s ease;
+}
+.proc:hover{
+  border-color:var(--text-mute);
+  background:var(--surface-2);
+}
+.proc.sel{
+  border-color:var(--primary);
+  background:var(--primary-bg);
+}
+.proc .ex{
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-size:12px;
+  font-weight:500;
+  flex:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.proc .chk{
+  width:16px;
+  height:16px;
+  border-radius:3px;
+  border:1.5px solid var(--border-strong);
+  display:grid;
+  place-items:center;
+  flex:none;
+  transition:all .12s ease;
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+}
+.proc.sel .chk{
+  background:var(--primary);
+  border-color:var(--primary);
+}
+.proc .wt{
+  font-size:12px;
+  color:var(--text-mute);
+  max-width:100px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.proc-empty{
+  grid-column:1/-1;
+  color:var(--text-mute);
+  font-size:12.5px;
+  padding:16px;
+  text-align:center;
+  border:1px dashed var(--border-strong);
+  border-radius:4px;
+}
+
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:4px;
+}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-size:12px;
+  background:var(--primary-bg);
+  color:var(--primary);
+  border:1px solid var(--primary-border);
+  padding:4px 10px;
+  border-radius:4px;
+  transition:all .12s ease;
+}
+.chip b{
+  cursor:pointer;
+  font-weight:700;
+  font-size:14px;
+  line-height:1;
+  transition:color .12s ease;
+}
+.chip b:hover{color:var(--danger)}
+.manual-row{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+}
+.manual-row input{flex:1}
+
+.kv{
+  display:grid;
+  grid-template-columns:120px 1fr;
+  gap:8px 14px;
+  font-size:13px;
+}
+.kv .k{
+  color:var(--text-mute);
+  font-weight:400;
+}
+.kv .vv{
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  color:var(--text);
+  word-break:break-all;
+}
+
+.switch-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid var(--border-soft);
+}
+.switch-row:last-child{border-bottom:0}
+.switch-row .lab{
+  font-size:13px;
+  font-weight:500;
+}
+.switch-row .desc{
+  font-size:12px;
+  color:var(--text-mute);
+  margin-top:2px;
+}
+
+.savebar{
+  flex:none;
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  padding:12px 20px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+}
+
+/* ========== 悬浮球 ========== */
+.orb{
+  position:fixed;
+  right:28px;
+  bottom:28px;
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  background:var(--primary);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  cursor:grab;
+  z-index:60;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+  touch-action:none;
+  user-select:none;
+  transition:box-shadow .15s ease, transform .1s ease;
+}
+.orb:active{cursor:grabbing;transform:scale(.96)}
+.orb:hover{box-shadow:0 6px 16px rgba(0,0,0,.2)}
+.orb.alert{background:var(--danger)}
+.orb svg{width:22px;height:22px}
+.orb-menu{
+  position:fixed;
+  min-width:180px;
+  background:var(--surface);
+  border:1px solid var(--border-strong);
+  border-radius:6px;
+  box-shadow:var(--shadow-lg);
+  padding:4px;
+  z-index:61;
+  display:none;
+}
+.orb-menu.on{display:block}
+.orb-menu button{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  text-align:left;
+  appearance:none;
+  border:0;
+  background:transparent;
+  padding:7px 10px;
+  border-radius:4px;
+  font-size:13px;
+  color:var(--text);
+  cursor:pointer;
+  font-family:inherit;
+  transition:background .12s ease;
+}
+.orb-menu button:hover{background:var(--surface-2)}
+.orb-menu .sep{
+  height:1px;
+  background:var(--border);
+  margin:4px 6px;
+}
+.orb-menu .danger{color:var(--danger)}
+
+/* ========== Toast ========== */
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:28px;
+  transform:translateX(-50%) translateY(16px);
+  background:#1F2937;
+  color:#F9FAFB;
+  padding:10px 18px;
+  border-radius:6px;
+  font-size:13px;
+  box-shadow:var(--shadow-lg);
+  opacity:0;
+  pointer-events:none;
+  transition:all .2s ease;
+  z-index:70;
+  font-family:inherit;
+}
+.toast.on{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+.toast.err{background:var(--danger)}
+.toast.ok{background:var(--success)}
+
+.hint{
+  font-size:12px;
+  color:var(--text-mute);
+  margin-top:8px;
+  line-height:1.5;
+}
+.meta{
+  font-family:"SF Mono",Consolas,Monaco,monospace;
+  font-size:11px;
+  color:var(--text-mute);
+  font-weight:400;
+  text-transform:none;
+  letter-spacing:0;
+}
+
+/* ========== 空状态 ========== */
+.empty-state{
+  text-align:center;
+  padding:32px 20px;
+  color:var(--text-mute);
+}
+.empty-state svg{
+  width:40px;
+  height:40px;
+  margin-bottom:10px;
+  opacity:.5;
+}
+.empty-state p{font-size:13px}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px){
+  .studio-body{grid-template-columns:1fr}
+  .cat-rail{display:none}
+  .statusbar{grid-template-columns:repeat(2,1fr)}
+  .proc-grid{grid-template-columns:1fr}
+  .kv{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 原型外壳 ===== -->
+<div class="demo-chrome">
+  <span class="tag">LEIXI / PROTOTYPE</span>
+  <span>词库管理系统原型 v2.0</span>
+  <div class="spacer"></div>
+  <div class="theme-switch" id="themeSwitch" title="切换主题">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    <span id="themeLabel">浅色</span>
+  </div>
+  <div class="seg" id="appSwitch">
+    <button data-app="studio" class="on">管理端</button>
+    <button data-app="client">客户端</button>
+  </div>
+</div>
+
+<!-- ================= 管理端 ================= -->
+<section class="app on" id="app-studio">
+  <div class="appbar">
+    <div class="brand">
+      <span class="brand-mark">雷</span>
+      雷犀词库管理
+      <small>管理端</small>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="exportBtn">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      导出词库
+    </button>
+    <button class="btn primary" id="addWordBtn">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      新增违禁词
+    </button>
+    <div class="winctl"><i></i><i></i><i></i></div>
+  </div>
+
+  <div class="studio-body">
+    <aside class="cat-rail">
+      <div class="rail-head">
+        <span class="ttl">分类</span>
+        <button class="btn sm ghost" id="addCatBtn">+ 新增</button>
+      </div>
+      <div class="cat-list" id="catList"></div>
+    </aside>
+
+    <main class="word-main">
+      <div class="toolbar">
+        <div class="search" id="searchWrap">
+          <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="searchInput" placeholder="搜索违禁词…">
+          <button class="clear-btn" id="searchClear" title="清除">×</button>
+        </div>
+        <select id="sevFilter" class="sev-filter">
+          <option value="">全部级别</option>
+          <option value="high">高</option>
+          <option value="mid">中</option>
+          <option value="low">低</option>
+        </select>
+        <div class="spacer"></div>
+        <span class="meta" id="resultMeta">共 0 条</span>
+      </div>
+
+      <div class="bulkbar" id="bulkbar">
+        <span class="selinfo" id="selCount">已选 0 项</span>
+        <button class="btn sm" id="bulkEnable">启用</button>
+        <button class="btn sm" id="bulkDisable">禁用</button>
+        <button class="btn sm danger" id="bulkDelete">删除</button>
+        <div class="spacer"></div>
+        <button class="btn sm ghost" id="bulkClear">取消选择</button>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:40px">
+              <span class="cbx" id="selAll" role="checkbox" aria-checked="false" tabindex="0" title="全选 / 取消全选"></span>
+            </th>
+            <th style="width:30%">词语</th>
+            <th>分类</th>
+            <th style="width:100px">严重级别</th>
+            <th style="width:80px">状态</th>
+            <th style="width:140px;text-align:right">操作</th>
+          </tr></thead>
+          <tbody id="wordBody"></tbody>
+        </table>
+      </div>
+      <div class="tbl-foot" id="wordFoot">共 0 条</div>
+    </main>
+  </div>
+</section>
+
+<!-- ================= 客户端 ================= -->
+<section class="app" id="app-client">
+  <div class="appbar">
+    <div class="brand">
+      <span class="brand-mark">雷</span>
+      雷犀监控客户端
+      <small>客户端</small>
+    </div>
+    <div class="spacer"></div>
+    <div class="winctl"><i></i><i></i><i></i></div>
+  </div>
+
+  <div class="statusbar">
+    <div class="stat">
+      <span class="k"><span class="live-dot" id="liveDot"></span> 实时监控</span>
+      <span class="v ok" id="vStatus">监控中</span>
+    </div>
+    <div class="stat">
+      <span class="k">词库状态</span>
+      <span class="v ok" id="vLib">已加载</span>
+    </div>
+    <div class="stat">
+      <span class="k">今日告警</span>
+      <span class="v" id="vAlerts">3</span>
+    </div>
+    <div class="stat">
+      <span class="k">监控目标</span>
+      <span class="v" id="vTargets">2</span>
+    </div>
+  </div>
+
+  <div class="tabs" id="clientTabs">
+    <button class="tab on" data-pane="targets">监控目标</button>
+    <button class="tab" data-pane="library">词库</button>
+    <button class="tab" data-pane="alert">告警设置</button>
+    <button class="tab" data-pane="logs">监控日志</button>
+  </div>
+
+  <div class="client-body">
+    <div class="pane on" id="pane-targets">
+      <div class="card">
+        <h4>运行中程序 <span class="meta" id="runCount"></span></h4>
+        <div class="proc-grid" id="procGrid"></div>
+        <div class="manual-row">
+          <input id="manualExe" placeholder="手动补充进程名，如 WeChat.exe">
+          <button class="btn" id="manualAdd">添加</button>
+        </div>
+      </div>
+      <div class="card">
+        <h4>已选监控目标</h4>
+        <div class="chips" id="selChips"></div>
+        <div class="hint">勾选上方运行中的程序，或手动补充。保存后对应用窗口的输入将被实时检测。</div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-library">
+      <div class="card">
+        <h4>词库文件</h4>
+        <div class="kv">
+          <span class="k">路径</span><span class="vv">C:\ProgramData\LeiXi\wordlib.json</span>
+          <span class="k">更新时间</span><span class="vv">2026-08-17 09:42:11</span>
+          <span class="k">词条数</span><span class="vv" id="libCount">12</span>
+          <span class="k">状态</span><span class="vv ok">在线 · 引擎已加载</span>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+          <button class="btn primary" id="importBtn">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            导入词库
+          </button>
+          <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+          <span class="hint" style="margin:0">导入管理端导出的 JSON 词库文件</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4>违禁词清单 <span class="meta" id="libWordsCount"></span></h4>
+        <div class="tbl-wrap" style="padding:0;max-height:340px">
+          <table>
+            <thead><tr>
+              <th style="width:36%">词语</th>
+              <th>分类</th>
+              <th style="width:100px">严重级别</th>
+              <th style="width:80px">状态</th>
+            </tr></thead>
+            <tbody id="libWordBody"></tbody>
+          </table>
+        </div>
+        <div class="hint">只读展示 · 词库由管理端维护，客户端仅导入与查看</div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-alert">
+      <div class="card">
+        <h4>告警通道</h4>
+        <div class="switch-row">
+          <div>
+            <div class="lab">弹窗提醒</div>
+            <div class="desc">命中时在屏幕上弹出提示</div>
+          </div>
+          <div class="toggle on" data-tg="popup" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+        <div class="switch-row">
+          <div>
+            <div class="lab">声音提醒</div>
+            <div class="desc">播放 alert.wav 提示音</div>
+          </div>
+          <div class="toggle on" data-tg="sound" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+        <div class="switch-row">
+          <div>
+            <div class="lab">语音播报</div>
+            <div class="desc">命中时用语音朗读告警内容</div>
+          </div>
+          <div class="toggle on" data-tg="voice" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+        <div class="switch-row">
+          <div>
+            <div class="lab">高亮标记</div>
+            <div class="desc">在告警弹窗内强调命中词</div>
+          </div>
+          <div class="toggle on" data-tg="highlight" role="switch" aria-checked="true" tabindex="0"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>检测参数</h4>
+        <div class="kv">
+          <span class="k">去重窗口（秒）</span>
+          <span><input style="width:140px" id="cooldown" value="30" type="number" min="0" max="3600"></span>
+          <span class="k">日志保留（天）</span>
+          <span><input style="width:140px" id="retention" value="30" type="number" min="1" max="3650"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-logs">
+      <div class="card">
+        <h4>最近告警记录</h4>
+        <div class="tbl-wrap" style="padding:0;max-height:400px">
+          <table>
+            <thead><tr>
+              <th style="width:90px">时间</th>
+              <th style="width:140px">目标软件</th>
+              <th>触发内容</th>
+              <th style="width:140px">命中词</th>
+              <th style="width:120px">处理状态</th>
+            </tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="savebar">
+    <button class="btn" id="resetBtn">恢复默认</button>
+    <button class="btn primary" id="saveBtn">保存配置</button>
+  </div>
+</section>
+
+<!-- 弹窗：新增/编辑违禁词 -->
+<div class="modal" id="wordModal">
+  <div class="box">
+    <header>
+      <span id="modalTitle">新增违禁词</span>
+      <button class="x" id="modalClose">×</button>
+    </header>
+    <div class="body" style="display:flex;flex-direction:column;gap:16px">
+      <div>
+        <label class="field-label">词语</label>
+        <input id="fWord" placeholder="请输入违禁词">
+      </div>
+      <div>
+        <label class="field-label">分类</label>
+        <select id="fCat"></select>
+      </div>
+      <div>
+        <label class="field-label">严重级别</label>
+        <select id="fSev">
+          <option value="high">高 · 必须拦截</option>
+          <option value="mid">中 · 重点提示</option>
+          <option value="low">低 · 仅记录</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">备注</label>
+        <textarea id="fNote" rows="3" placeholder="可选，填写备注说明"></textarea>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn" id="modalCancel">取消</button>
+      <button class="btn primary" id="modalSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导出弹窗 -->
+<div class="modal" id="exportModal">
+  <div class="box" style="width:min(600px,92vw)">
+    <header>
+      导出词库
+      <button class="x" id="exportClose">×</button>
+    </header>
+    <pre id="exportJson"></pre>
+    <div class="foot">
+      <button class="btn" id="exportCancel">取消</button>
+      <button class="btn primary" id="exportDownload">下载 JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="modal" id="delModal">
+  <div class="box" style="width:min(400px,92vw)">
+    <header>
+      <span>确认删除</span>
+      <button class="x" id="delClose">×</button>
+    </header>
+    <div class="body" style="font-size:13px;color:var(--text-sub);line-height:1.6">
+      <p id="delMsg"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="delCancel">取消</button>
+      <button class="btn danger-solid" id="delConfirm">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 悬浮球 -->
+<div class="orb" id="orb" title="拖拽移动 · 左键打开面板 · 右键菜单">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+</div>
+<div class="orb-menu" id="orbMenu">
+  <button id="orbOpen">显示监控面板</button>
+  <button id="orbPause">暂停监控</button>
+  <button id="orbSimulate">模拟告警测试</button>
+  <div class="sep"></div>
+  <button class="danger" id="orbExit">退出客户端</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- 数据 ---------- */
+let CATS = [
+  {n:"全部"},{n:"未分类"},{n:"政治敏感"},
+  {n:"辱骂攻击"},{n:"广告导流"}
+];
+let WORDS = [
+  {w:"示例政治词A",cat:"政治敏感",sev:"high",on:true},
+  {w:"示例辱骂词B",cat:"辱骂攻击",sev:"mid",on:true},
+  {w:"示例导流词C",cat:"广告导流",sev:"low",on:false},
+  {w:"示例政治词D",cat:"政治敏感",sev:"high",on:true},
+  {w:"示例辱骂词E",cat:"辱骂攻击",sev:"mid",on:true},
+  {w:"示例导流词F",cat:"广告导流",sev:"low",on:true},
+  {w:"示例辱骂词G",cat:"辱骂攻击",sev:"mid",on:false},
+  {w:"示例词H",cat:"未分类",sev:"low",on:true},
+  {w:"示例词I",cat:"未分类",sev:"low",on:true},
+  {w:"示例政治词J",cat:"政治敏感",sev:"high",on:true},
+  {w:"示例导流词K",cat:"广告导流",sev:"low",on:true},
+  {w:"示例辱骂词L",cat:"辱骂攻击",sev:"mid",on:true},
+];
+const SEVTXT = {high:"高",mid:"中",low:"低"};
+const RUNNING = [
+  {ex:"WeChat.exe",wt:"微信"},{ex:"WXWork.exe",wt:"企业微信"},
+  {ex:"QQ.exe",wt:"QQ"},{ex:"outlook.exe",wt:"Outlook"},
+  {ex:"chrome.exe",wt:"Chrome"},{ex:"notepad.exe",wt:"记事本"},
+  {ex:"dingtalk.exe",wt:"钉钉"},{ex:"sshd.exe",wt:"OpenSSH"},
+];
+const LOGS = [
+  {t:"09:12:33",p:"WeChat.exe",c:"这个产品绝对保真，支持退货",m:["绝对","退货"],d:"已确认"},
+  {t:"10:05:11",p:"QQ.exe",c:"您可以加微信详聊优惠",m:["加微信"],d:"已确认"},
+  {t:"11:20:47",p:"WXWork.exe",c:"不满意可以退货处理",m:["退货"],d:"未确认（超时）"},
+  {t:"13:48:02",p:"WeChat.exe",c:"本店最便宜，绝对正品",m:["最","绝对"],d:"已确认"},
+];
+
+let selected = new Set(["WeChat.exe","WXWork.exe"]);
+let editingId = -1;
+let selWords = new Set();
+let nextId = 0;
+let currentCat = "全部";
+let alertSettings = {
+  popup: true,
+  sound: true,
+  voice: true,
+  highlight: true
+};
+let cooldownSeconds = 30;
+let logRetentionDays = 30;
+
+WORDS.forEach(w => w.id = ++nextId);
+
+/* ---------- 工具函数 ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function toast(t, type){
+  const e = $("#toast");
+  e.textContent = t;
+  e.className = "toast on" + (type ? " " + type : "");
+  clearTimeout(e._t);
+  e._t = setTimeout(() => { e.className = "toast"; }, 2200);
+}
+
+function findWordById(id){
+  return WORDS.find(w => w.id === id);
+}
+
+function syncCatsFromWords(){
+  const existCats = new Set(CATS.map(c => c.n));
+  WORDS.forEach(w => {
+    if(!existCats.has(w.cat)){
+      CATS.push({n:w.cat});
+      existCats.add(w.cat);
+    }
+  });
+}
+
+/* ---------- 主题系统 ---------- */
+const themes = ["light","dark","system"];
+const themeLabels = {light:"浅色",dark:"深色",system:"跟随系统"};
+let currentTheme = localStorage.getItem("theme") || "light";
+
+function applyTheme(theme){
+  currentTheme = theme;
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+  $("#themeLabel").textContent = themeLabels[theme];
+}
+applyTheme(currentTheme);
+
+$("#themeSwitch").addEventListener("click", () => {
+  const idx = themes.indexOf(currentTheme);
+  const next = themes[(idx + 1) % themes.length];
+  applyTheme(next);
+});
+
+/* ---------- 应用切换 ---------- */
+$("#appSwitch").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if(!b) return;
+  $$("#appSwitch button").forEach(x => x.classList.toggle("on", x === b));
+  const app = b.dataset.app;
+  $$(".app").forEach(a => a.classList.toggle("on", a.id === "app-" + app));
+});
+
+/* ---------- 管理端：分类 ---------- */
+function getCatCount(name){
+  if(name === "全部") return WORDS.length;
+  return WORDS.filter(w => w.cat === name).length;
+}
+
+function renderCats(){
+  const el = $("#catList");
+  el.innerHTML = "";
+  CATS.forEach(c => {
+    const d = document.createElement("div");
+    d.className = "cat-item" + (c.n === currentCat ? " on" : "");
+    d.dataset.cat = c.n;
+    d.innerHTML = `<span>${escapeHtml(c.n)}</span><span class="cnt">${getCatCount(c.n)}</span>`;
+    d.onclick = () => {
+      currentCat = c.n;
+      $$(".cat-item").forEach(x => x.classList.toggle("on", x.dataset.cat === c.n));
+      renderWords();
+    };
+    el.appendChild(d);
+  });
+}
+
+let curIds = [];
+function renderWords(){
+  const q = $("#searchInput").value.trim().toLowerCase();
+  const sf = $("#sevFilter").value;
+  const rows = WORDS.filter(w =>
+    (currentCat === "全部" || w.cat === currentCat) &&
+    (!sf || w.sev === sf) &&
+    (!q || w.w.toLowerCase().includes(q))
+  );
+  curIds = rows.map(w => w.id);
+  const tb = $("#wordBody");
+  tb.innerHTML = "";
+
+  if(rows.length === 0){
+    tb.innerHTML = `<tr><td colspan="6">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <p>${WORDS.length === 0 ? '暂无违禁词，点击右上角新增' : '没有找到匹配的违禁词'}</p>
+      </div>
+    </td></tr>`;
+  } else {
+    const frag = document.createDocumentFragment();
+    rows.forEach(w => {
+      const sel = selWords.has(w.id);
+      const tr = document.createElement("tr");
+      if(sel) tr.classList.add("sel");
+      tr.innerHTML = `
+        <td><span class="cbx ${sel?'on':''}" data-cb="${w.id}" role="checkbox" aria-checked="${sel}" tabindex="0"></span></td>
+        <td class="word">${escapeHtml(w.w)}</td>
+        <td>${escapeHtml(w.cat)}</td>
+        <td><span class="badge ${w.sev}">${SEVTXT[w.sev]}</span></td>
+        <td><div class="toggle ${w.on?'on':''}" data-i="${w.id}" role="switch" aria-checked="${w.on}" tabindex="0"></div></td>
+        <td class="op">
+          <button class="btn sm" data-edit="${w.id}">编辑</button>
+          <button class="btn sm danger" data-del="${w.id}">删除</button>
+        </td>`;
+      frag.appendChild(tr);
+    });
+    tb.appendChild(frag);
+  }
+
+  const total = WORDS.length;
+  const filtered = rows.length;
+  $("#wordFoot").textContent = `共 ${total} 条${filtered !== total ? `，筛选结果 ${filtered} 条` : ''}`;
+  $("#resultMeta").textContent = `共 ${filtered} 条`;
+
+  syncSelAll();
+  updateBulkbar();
+}
+
+/* 表格事件委托 */
+$("#wordBody").addEventListener("click", e => {
+  const tog = e.target.closest(".toggle");
+  const edit = e.target.closest("[data-edit]");
+  const del = e.target.closest("[data-del]");
+  const cb = e.target.closest("[data-cb]");
+
+  if(tog){
+    const id = +tog.dataset.i;
+    const w = findWordById(id);
+    if(w){
+      w.on = !w.on;
+      tog.classList.toggle("on", w.on);
+      tog.setAttribute("aria-checked", w.on);
+      renderLibWords();
+    }
+  }
+  if(edit){
+    openModal(+edit.dataset.edit);
+  }
+  if(del){
+    openDelConfirm([+del.dataset.del]);
+  }
+  if(cb){
+    const id = +cb.dataset.cb;
+    if(selWords.has(id)) selWords.delete(id);
+    else selWords.add(id);
+    const on = selWords.has(id);
+    cb.classList.toggle("on", on);
+    cb.setAttribute("aria-checked", on);
+    cb.closest("tr")?.classList.toggle("sel", on);
+    syncSelAll();
+    updateBulkbar();
+  }
+});
+
+$("#wordBody").addEventListener("keydown", e => {
+  if(e.key !== " " && e.key !== "Enter") return;
+  const cb = e.target.closest("[data-cb]");
+  const tog = e.target.closest(".toggle");
+  if(cb || tog){ e.preventDefault(); e.target.click(); }
+});
+
+function syncSelAll(){
+  const el = $("#selAll");
+  const total = curIds.length;
+  const all = total > 0 && curIds.every(id => selWords.has(id));
+  const some = curIds.some(id => selWords.has(id));
+  el.classList.toggle("on", all);
+  el.classList.toggle("mix", !all && some);
+  el.setAttribute("aria-checked", all ? "true" : (some ? "mixed" : "false"));
+}
+
+function toggleSelAll(){
+  const all = curIds.length > 0 && curIds.every(id => selWords.has(id));
+  if(all) curIds.forEach(id => selWords.delete(id));
+  else curIds.forEach(id => selWords.add(id));
+  renderWords();
+}
+
+$("#selAll").onclick = toggleSelAll;
+$("#selAll").onkeydown = e => {
+  if(e.key === " " || e.key === "Enter"){ e.preventDefault(); toggleSelAll(); }
+};
+
+function updateBulkbar(){
+  const b = $("#bulkbar");
+  if(selWords.size === 0){ b.classList.remove("on"); return; }
+  b.classList.add("on");
+  $("#selCount").textContent = `已选 ${selWords.size} 项`;
+}
+
+/* 搜索框 */
+$("#searchInput").oninput = () => {
+  $("#searchWrap").classList.toggle("has-value", $("#searchInput").value.length > 0);
+  renderWords();
+};
+$("#searchClear").onclick = () => {
+  $("#searchInput").value = "";
+  $("#searchWrap").classList.remove("has-value");
+  $("#searchInput").focus();
+  renderWords();
+};
+$("#sevFilter").onchange = () => renderWords();
+
+/* 新增分类 */
+$("#addCatBtn").onclick = () => {
+  if(document.getElementById("catInline")) return;
+  const wrap = document.createElement("div");
+  wrap.id = "catInline";
+  wrap.className = "cat-item on";
+  wrap.innerHTML = `<input id="catInput" placeholder="输入分类名，回车确认" style="border:0;background:transparent;padding:2px 0;font-size:13px;width:100%;outline:none;color:var(--text);font-family:inherit">`;
+  $("#catList").appendChild(wrap);
+  const inp = wrap.querySelector("#catInput");
+  inp.focus();
+  let cancelled = false;
+  inp.addEventListener("keydown", e => {
+    if(e.key === "Enter") inp.blur();
+    else if(e.key === "Escape"){ cancelled = true; wrap.remove(); }
+  });
+  inp.addEventListener("blur", () => {
+    if(cancelled) return;
+    const v = inp.value.trim();
+    wrap.remove();
+    if(v){
+      if(CATS.some(c => c.n === v)){
+        toast("分类已存在", "err");
+        return;
+      }
+      CATS.push({n:v});
+      currentCat = v;
+      renderCats();
+      renderWords();
+      fillCatSelect();
+      toast("已新增分类", "ok");
+    }
+  });
+};
+
+/* ---------- 新增/编辑弹窗 ---------- */
+function fillCatSelect(){
+  const s = $("#fCat");
+  s.innerHTML = CATS.filter(c => c.n !== "全部").map(c =>
+    `<option>${escapeHtml(c.n)}</option>`
+  ).join("");
+}
+
+function openModal(id){
+  editingId = id;
+  const w = id > 0 ? findWordById(id) : null;
+  $("#modalTitle").textContent = w ? "编辑违禁词" : "新增违禁词";
+  $("#fWord").value = w ? w.w : "";
+  fillCatSelect();
+  $("#fCat").value = w ? w.cat : (CATS[1]?.n || "未分类");
+  $("#fSev").value = w ? w.sev : "mid";
+  $("#fNote").value = w?.note || "";
+  $("#wordModal").classList.add("on");
+  setTimeout(() => $("#fWord").focus(), 50);
+}
+
+function closeModal(){
+  $("#wordModal").classList.remove("on");
+  editingId = -1;
+}
+
+$("#addWordBtn").onclick = () => openModal(-1);
+$("#modalClose").onclick = closeModal;
+$("#modalCancel").onclick = closeModal;
+$("#wordModal").addEventListener("click", e => {
+  if(e.target === $("#wordModal")) closeModal();
+});
+
+$("#modalSave").onclick = () => {
+  const w = $("#fWord").value.trim();
+  if(!w){ toast("请填写词语", "err"); $("#fWord").focus(); return; }
+
+  const cat = $("#fCat").value;
+  const sev = $("#fSev").value;
+  const note = $("#fNote").value.trim();
+
+  if(editingId > 0){
+    const word = findWordById(editingId);
+    if(word){
+      word.w = w;
+      word.cat = cat;
+      word.sev = sev;
+      word.note = note;
+    }
+    toast("已保存修改", "ok");
+  } else {
+    if(WORDS.some(x => x.w === w)){
+      toast("该词语已存在", "err");
+      return;
+    }
+    WORDS.unshift({w, cat, sev, on:true, id:++nextId, note});
+    toast("已添加违禁词", "ok");
+  }
+  closeModal();
+  syncCatsFromWords();
+  renderWords();
+  renderCats();
+  fillCatSelect();
+  renderLibWords();
+  $("#libCount").textContent = WORDS.length;
+};
+
+/* ---------- 导出 ---------- */
+function buildJson(){
+  return JSON.stringify({
+    schema: "wordguard.library",
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    metadata: {
+      targets: [...selected],
+      alertPopup: alertSettings.popup,
+      alertSound: alertSettings.sound,
+      alertVoice: alertSettings.voice,
+      alertHighlight: alertSettings.highlight,
+      cooldownSeconds: cooldownSeconds,
+      logRetentionDays: logRetentionDays
+    },
+    categories: CATS.filter(c => c.n !== "全部").map(c => c.n),
+    words: WORDS.map(w => ({
+      word: w.w,
+      category: w.cat,
+      severity: w.sev,
+      enabled: w.on,
+      note: w.note || ""
+    }))
+  }, null, 2);
+}
+
+$("#exportBtn").onclick = () => {
+  $("#exportJson").textContent = buildJson();
+  $("#exportModal").classList.add("on");
+};
+$("#exportClose").onclick = () => $("#exportModal").classList.remove("on");
+$("#exportCancel").onclick = () => $("#exportModal").classList.remove("on");
+$("#exportModal").addEventListener("click", e => {
+  if(e.target === $("#exportModal")) $("#exportModal").classList.remove("on");
+});
+
+$("#exportDownload").onclick = () => {
+  try{
+    const json = buildJson();
+    const blob = new Blob([json], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "wordlib.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("已下载 wordlib.json", "ok");
+    $("#exportModal").classList.remove("on");
+  }catch(e){
+    toast("下载失败：" + e.message, "err");
+  }
+};
+
+/* ---------- 批量操作 ---------- */
+$("#bulkEnable").onclick = () => {
+  if(!selWords.size) return;
+  selWords.forEach(id => {
+    const w = findWordById(id);
+    if(w) w.on = true;
+  });
+  renderWords();
+  renderLibWords();
+  toast(`已启用 ${selWords.size} 项`, "ok");
+};
+$("#bulkDisable").onclick = () => {
+  if(!selWords.size) return;
+  selWords.forEach(id => {
+    const w = findWordById(id);
+    if(w) w.on = false;
+  });
+  renderWords();
+  renderLibWords();
+  toast(`已禁用 ${selWords.size} 项`, "ok");
+};
+$("#bulkDelete").onclick = () => {
+  if(!selWords.size) return;
+  openDelConfirm([...selWords]);
+};
+$("#bulkClear").onclick = () => {
+  selWords.clear();
+  renderWords();
+};
+
+/* ---------- 删除确认 ---------- */
+let pendingDel = new Set();
+function openDelConfirm(ids){
+  pendingDel = new Set(ids);
+  const single = ids.length === 1;
+  const word = single ? findWordById(ids[0]) : null;
+  $("#delMsg").textContent = single
+    ? `确认删除「${word?.w || ''}」？删除后不可恢复。`
+    : `确认删除选中的 ${pendingDel.size} 个违禁词？删除后不可恢复。`;
+  $("#delModal").classList.add("on");
+}
+function closeDel(){
+  $("#delModal").classList.remove("on");
+  pendingDel.clear();
+}
+$("#delClose").onclick = closeDel;
+$("#delCancel").onclick = closeDel;
+$("#delModal").addEventListener("click", e => {
+  if(e.target === $("#delModal")) closeDel();
+});
+$("#delConfirm").onclick = () => {
+  const count = pendingDel.size;
+  WORDS = WORDS.filter(w => !pendingDel.has(w.id));
+  selWords.clear();
+  pendingDel.clear();
+  $("#delModal").classList.remove("on");
+  renderWords();
+  renderCats();
+  renderLibWords();
+  $("#libCount").textContent = WORDS.length;
+  toast(`已删除 ${count} 条`, "ok");
+};
+
+/* ESC 关闭弹窗 */
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape"){
+    if($("#wordModal").classList.contains("on")) closeModal();
+    else if($("#exportModal").classList.contains("on")) $("#exportModal").classList.remove("on");
+    else if($("#delModal").classList.contains("on")) closeDel();
+  }
+});
+
+/* ---------- 客户端：标签页 ---------- */
+$("#clientTabs").addEventListener("click", e => {
+  const b = e.target.closest(".tab");
+  if(!b) return;
+  $$(".tab").forEach(t => t.classList.toggle("on", t === b));
+  $$(".pane").forEach(p => p.classList.toggle("on", p.id === "pane-" + b.dataset.pane));
+});
+
+/* ---------- 客户端：监控目标 ---------- */
+function renderProcs(){
+  const g = $("#procGrid");
+  g.innerHTML = "";
+  if(RUNNING.length === 0){
+    g.innerHTML = '<div class="proc-empty">未检测到运行中的程序</div>';
+  } else {
+    const frag = document.createDocumentFragment();
+    RUNNING.forEach(p => {
+      const sel = selected.has(p.ex);
+      const d = document.createElement("div");
+      d.className = "proc" + (sel ? " sel" : "");
+      d.innerHTML = `
+        <span class="chk">${sel ? "✓" : ""}</span>
+        <span class="ex">${escapeHtml(p.ex)}</span>
+        <span class="wt">${escapeHtml(p.wt)}</span>`;
+      d.onclick = () => {
+        if(selected.has(p.ex)) selected.delete(p.ex);
+        else selected.add(p.ex);
+        renderProcs();
+        renderChips();
+        syncTargets();
+      };
+      frag.appendChild(d);
+    });
+    g.appendChild(frag);
+  }
+  $("#runCount").textContent = `检测到 ${RUNNING.length} 个`;
+}
+
+function renderChips(){
+  const c = $("#selChips");
+  c.innerHTML = "";
+  if(selected.size === 0){
+    c.innerHTML = '<span class="hint">尚未选择监控目标</span>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  [...selected].forEach(ex => {
+    const s = document.createElement("span");
+    s.className = "chip";
+    s.innerHTML = `${escapeHtml(ex)} <b data-x="${escapeHtml(ex)}">×</b>`;
+    s.querySelector("b").onclick = ev => {
+      ev.stopPropagation();
+      selected.delete(ex);
+      renderProcs();
+      renderChips();
+      syncTargets();
+    };
+    frag.appendChild(s);
+  });
+  c.appendChild(frag);
+}
+
+function syncTargets(){
+  $("#vTargets").textContent = selected.size;
+}
+
+$("#manualAdd").onclick = () => {
+  const v = $("#manualExe").value.trim();
+  if(!v) return;
+  if(!/\.exe$/i.test(v)){
+    toast("进程名应以 .exe 结尾", "err");
+    return;
+  }
+  if(selected.has(v)){
+    toast("已在监控列表中", "err");
+    return;
+  }
+  selected.add(v);
+  $("#manualExe").value = "";
+  renderProcs();
+  renderChips();
+  syncTargets();
+  toast("已添加监控目标", "ok");
+};
+$("#manualExe").onkeydown = e => {
+  if(e.key === "Enter") $("#manualAdd").click();
+};
+
+$("#libCount").textContent = WORDS.length;
+
+/* ---------- 客户端词库清单 ---------- */
+function renderLibWords(){
+  const tb = $("#libWordBody");
+  tb.innerHTML = "";
+  if(WORDS.length === 0){
+    tb.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--text-mute);font-size:13px">词库为空</td></tr>';
+  } else {
+    const frag = document.createDocumentFragment();
+    WORDS.forEach(w => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="word" style="padding:10px 14px;border-bottom:1px solid var(--border-soft)">${escapeHtml(w.w)}</td>
+        <td style="padding:10px 14px;border-bottom:1px solid var(--border-soft)">${escapeHtml(w.cat)}</td>
+        <td style="padding:10px 14px;border-bottom:1px solid var(--border-soft)"><span class="badge ${w.sev}">${SEVTXT[w.sev]}</span></td>
+        <td style="padding:10px 14px;border-bottom:1px solid var(--border-soft);color:${w.on?'var(--success)':'var(--text-mute)'};font-size:12px;font-weight:500">${w.on?'启用':'停用'}</td>`;
+      frag.appendChild(tr);
+    });
+    tb.appendChild(frag);
+  }
+  $("#libWordsCount").textContent = `共 ${WORDS.length} 条`;
+}
+renderLibWords();
+
+/* ---------- 客户端：日志 ---------- */
+function renderLogs(){
+  const tb = $("#logBody");
+  tb.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  LOGS.forEach(l => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="font-family:'SF Mono',Consolas,Monaco,monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border-soft);color:var(--text-mute)">${escapeHtml(l.t)}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--border-soft)"><span class="pill">${escapeHtml(l.p)}</span></td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--border-soft);font-size:13px">${escapeHtml(l.c)}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--border-soft)">${l.m.map(w=>`<span class="badge high">${escapeHtml(w)}</span>`).join(' ')}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--border-soft);font-size:12px;color:${l.d.includes('已确认')?'var(--success)':'var(--warning)'};font-weight:500">${escapeHtml(l.d)}</td>`;
+    frag.appendChild(tr);
+  });
+  tb.appendChild(frag);
+}
+renderLogs();
+
+/* ---------- 客户端：导入 ---------- */
+$("#importBtn").onclick = () => $("#importFile").click();
+$("#importFile").onchange = e => {
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(String(r.result));
+      if(data.words && Array.isArray(data.words)){
+        WORDS = data.words.map((w) => ({
+          w: w.word || w.text || "",
+          cat: w.category || "未分类",
+          sev: w.severity || "mid",
+          on: w.enabled !== false,
+          note: w.note || "",
+          id: ++nextId
+        })).filter(w => w.w);
+
+        if(data.categories && Array.isArray(data.categories)){
+          data.categories.forEach(cat => {
+            if(!CATS.some(c => c.n === cat)){
+              CATS.push({n:cat});
+            }
+          });
+        }
+
+        syncCatsFromWords();
+
+        if(data.metadata){
+          if(Array.isArray(data.metadata.targets)){
+            selected = new Set(data.metadata.targets);
+          }
+          if(typeof data.metadata.alertPopup === "boolean") alertSettings.popup = data.metadata.alertPopup;
+          if(typeof data.metadata.alertSound === "boolean") alertSettings.sound = data.metadata.alertSound;
+          if(typeof data.metadata.alertVoice === "boolean") alertSettings.voice = data.metadata.alertVoice;
+          if(typeof data.metadata.alertHighlight === "boolean") alertSettings.highlight = data.metadata.alertHighlight;
+          if(typeof data.metadata.cooldownSeconds === "number") cooldownSeconds = data.metadata.cooldownSeconds;
+          if(typeof data.metadata.logRetentionDays === "number") logRetentionDays = data.metadata.logRetentionDays;
+
+          $("#cooldown").value = cooldownSeconds;
+          $("#retention").value = logRetentionDays;
+          $$(".toggle[data-tg]").forEach(t => {
+            const key = t.dataset.tg;
+            const on = alertSettings[key] === true;
+            t.classList.toggle("on", on);
+            t.setAttribute("aria-checked", on);
+          });
+        }
+
+        renderWords();
+        renderCats();
+        fillCatSelect();
+        renderLibWords();
+        renderProcs();
+        renderChips();
+        syncTargets();
+        $("#libCount").textContent = WORDS.length;
+        $("#vLib").textContent = "已加载";
+        $("#vLib").className = "v ok";
+        toast(`导入成功：${WORDS.length} 条违禁词`, "ok");
+      } else {
+        toast("文件格式不正确：缺少 words 字段", "err");
+      }
+    }catch(err){
+      toast("解析失败：" + err.message, "err");
+    }
+  };
+  r.onerror = () => toast("读取文件失败", "err");
+  r.readAsText(f);
+  e.target.value = "";
+};
+
+/* 告警开关 */
+$$(".toggle[data-tg]").forEach(t => {
+  const tog = () => {
+    const on = !t.classList.contains("on");
+    t.classList.toggle("on", on);
+    t.setAttribute("aria-checked", on);
+    const key = t.dataset.tg;
+    if(alertSettings.hasOwnProperty(key)){
+      alertSettings[key] = on;
+    }
+  };
+  t.onclick = tog;
+  t.onkeydown = e => { if(e.key === " " || e.key === "Enter"){ e.preventDefault(); tog(); } };
+});
+
+$("#cooldown").onchange = () => {
+  cooldownSeconds = parseInt($("#cooldown").value) || 30;
+};
+$("#retention").onchange = () => {
+  logRetentionDays = parseInt($("#retention").value) || 30;
+};
+
+$("#saveBtn").onclick = () => toast("配置已保存", "ok");
+$("#resetBtn").onclick = () => toast("已恢复默认设置", "ok");
+
+/* ---------- 悬浮球：拖拽 + 菜单 ---------- */
+(function(){
+  const orb = $("#orb");
+  const menu = $("#orbMenu");
+  let isDragging = false;
+  let hasMoved = false;
+  let startX = 0, startY = 0;
+  let offsetX = 0, offsetY = 0;
+
+  orb.addEventListener("pointerdown", e => {
+    if(e.button !== 0) return;
+    isDragging = true;
+    hasMoved = false;
+    orb.setPointerCapture(e.pointerId);
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = orb.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+  });
+
+  orb.addEventListener("pointermove", e => {
+    if(!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if(Math.abs(dx) + Math.abs(dy) > 3) hasMoved = true;
+
+    let x = e.clientX - offsetX;
+    let y = e.clientY - offsetY;
+    x = Math.max(0, Math.min(window.innerWidth - orb.offsetWidth, x));
+    y = Math.max(0, Math.min(window.innerHeight - orb.offsetHeight, y));
+    orb.style.left = x + "px";
+    orb.style.top = y + "px";
+    orb.style.right = "auto";
+    orb.style.bottom = "auto";
+  });
+
+  orb.addEventListener("pointerup", e => {
+    isDragging = false;
+    try{ orb.releasePointerCapture(e.pointerId); }catch(_){}
+  });
+
+  orb.addEventListener("click", () => {
+    if(!hasMoved){
+      menu.classList.remove("on");
+      $("#appSwitch").querySelector('[data-app="client"]').click();
+    }
+  });
+
+  orb.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    const r = orb.getBoundingClientRect();
+    menu.style.left = Math.min(r.left, window.innerWidth - 200) + "px";
+    menu.style.top = (r.top - menu.offsetHeight - 6) + "px";
+    menu.classList.toggle("on");
+  });
+
+  document.addEventListener("click", e => {
+    if(!menu.contains(e.target) && e.target !== orb){
+      menu.classList.remove("on");
+    }
+  });
+
+  $("#orbOpen").onclick = () => {
+    menu.classList.remove("on");
+    $("#appSwitch").querySelector('[data-app="client"]').click();
+  };
+  $("#orbPause").onclick = () => {
+    menu.classList.remove("on");
+    const d = $("#liveDot");
+    const v = $("#vStatus");
+    const paused = d.classList.toggle("pause");
+    v.textContent = paused ? "已暂停" : "监控中";
+    v.className = "v " + (paused ? "warn" : "ok");
+    toast(paused ? "监控已暂停" : "监控已恢复", paused ? "" : "ok");
+  };
+  $("#orbSimulate").onclick = () => {
+    menu.classList.remove("on");
+    toast("模拟告警：检测到违禁词", "err");
+    orb.classList.add("alert");
+    setTimeout(() => orb.classList.remove("alert"), 2000);
+  };
+  $("#orbExit").onclick = () => {
+    menu.classList.remove("on");
+    toast("退出（原型演示）");
+  };
+})();
+
+/* ---------- 初始化 ---------- */
+syncCatsFromWords();
+renderCats();
+fillCatSelect();
+renderWords();
+renderProcs();
+renderChips();
+syncTargets();
+
+})();
+</script>
+</body>
+</html>

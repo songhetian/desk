@@ -2,58 +2,64 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>WordGuard · 监控日志</title>
+<title>雷犀 · 监控日志</title>
 <style>
   :root{
-    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
-    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
-    --bg:#EEF2F7; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
-    --hi:#DC2626; --hi-l:#FEF2F2; --mid:#D97706; --mid-l:#FFFBEB;
-    --lo:#2563EB; --lo-l:#EFF4FF; --ok:#059669; --ok-l:#ECFDF5;
-    --shadow:0 1px 2px rgba(15,23,42,.06),0 6px 18px rgba(15,23,42,.06);
-    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --bg:#EEF2F7; --bg-2:#E7EDF5;
+    --surface:#FBFCFE; --surface-2:#F3F7FC; --surface-3:#EAF1FA;
+    --border:#D7E0EC; --border-strong:#C2CEDE;
+    --text:#16222E; --text-sub:#516275; --text-mute:#8593A4;
+    --blue:#2563EB; --blue-d:#1D4ED8; --blue-l:#E8F0FE; --blue-ll:#F2F7FF;
+    --ok:#15803D; --ok-l:#E6F4EA; --ok-b:#B7E0C2;
+    --warn:#B45309; --warn-l:#FBEFE0; --warn-b:#F0D3A8;
+    --danger:#DC2626; --danger-l:#FCE8E8; --danger-b:#F3B7B7;
+    --shadow:0 1px 2px rgba(20,40,70,.06), 0 4px 16px rgba(20,40,70,.08);
+    --mono:"Cascadia Code","Cascadia Mono","SFMono-Regular",Menlo,"Consolas",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif;
+    --r:6px; --r-sm:4px;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;
-    background:var(--bg);color:var(--ink);font-size:13.5px;overflow:hidden;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);overflow:hidden;font-family:var(--sans);
+    font-size:14px;line-height:1.62;-webkit-font-smoothing:antialiased}
   .app{height:100vh;display:flex;flex-direction:column;background:var(--bg)}
 
-  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;
-    background:#fff;border-bottom:1px solid var(--line);flex:none}
-  .titlebar .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
-  .titlebar .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(160deg,var(--blue),var(--blue-d));
-    display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
-  .titlebar .brand small{font-weight:400;opacity:.75;font-size:11.5px;color:var(--sub)}
-  .count{font-size:12px;background:var(--blue-l);color:var(--blue-d);padding:5px 12px;border-radius:20px;font-weight:600}
+  .titlebar{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;
+    background:var(--surface);border-bottom:1px solid var(--border);flex:none}
+  .titlebar .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;color:var(--text)}
+  .titlebar .logo{width:28px;height:28px;border-radius:6px;
+    background:var(--blue);color:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .titlebar .brand small{font-weight:500;color:var(--text-mute);font-size:11.5px;letter-spacing:.04em}
+  .count{font-family:var(--mono);font-size:12px;background:var(--blue-l);color:var(--blue-d);
+    padding:5px 12px;border-radius:20px;font-weight:600;border:1px solid #BFD2FB}
 
-  .content{flex:1;padding:20px 24px;overflow:auto}
-  h2{font-size:19px;margin:0 0 4px;font-weight:700}
-  .sub{color:var(--sub);font-size:12.5px;margin:0 0 16px}
+  .content{flex:1;padding:18px 22px;overflow:auto}
+  h2{font-size:16px;margin:0 0 4px;font-weight:600;color:var(--text)}
+  .sub{color:var(--text-sub);font-size:12.5px;margin:0 0 16px}
 
   .toolbar{display:flex;gap:9px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
-  .toolbar input[type=date],.toolbar input[type=text]{padding:8px 12px;border:1px solid var(--line-d);border-radius:8px;
-    font-size:13px;background:#fff;color:var(--ink);font-family:inherit}
-  .toolbar input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
-  .toolbar .sep{color:var(--mut);font-size:12.5px}
-  .btn{border:none;background:var(--blue);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
-  .btn:hover{background:var(--blue-d)}
+  .toolbar .sep{color:var(--text-mute);font-size:12.5px}
+  .toolbar input[type=date],.toolbar input[type=text]{width:auto;min-width:150px}
 
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;
-    background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
-  th,td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
-  th{background:#F8FAFC;font-weight:600;color:var(--sub);font-size:12px;white-space:nowrap}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    overflow:hidden;box-shadow:var(--shadow)}
+  th,td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:var(--surface-2);font-weight:700;font-size:11.5px;letter-spacing:.06em;color:var(--text-sub);white-space:nowrap;text-transform:uppercase}
   tr:last-child td{border-bottom:none}
-  tbody tr:hover td{background:#F8FBFF}
-  .tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:600}
-  .tag.h{background:var(--hi-l);color:var(--hi)}
-  .tag.m{background:var(--mid-l);color:var(--mid)}
-  .tag.l{background:var(--lo-l);color:var(--lo)}
-  .tag.w{background:var(--ok-l);color:var(--ok)}
-  .content-cell{max-width:320px;white-space:pre-wrap;word-break:break-all}
-  .time-cell{white-space:nowrap;font-family:var(--mono);font-size:11.5px;color:var(--sub)}
-  .empty{color:var(--mut);text-align:center;padding:30px;background:var(--card);border:1px dashed var(--line-d);
-    border-radius:13px;margin-top:14px;font-size:13px}
+  tbody tr{transition:background .12s}
+  tbody tr:hover td{background:var(--blue-ll)}
+
+  .tag{display:inline-flex;align-items:center;font-family:var(--mono);font-size:11px;font-weight:600;
+    padding:2px 9px;border-radius:20px;border:1px solid transparent}
+  .tag.h{background:var(--danger-l);color:var(--danger);border-color:var(--danger-b)}
+  .tag.m{background:var(--warn-l);color:var(--warn);border-color:var(--warn-b)}
+  .tag.l{background:var(--blue-l);color:var(--blue-d);border-color:#BFD2FB}
+  .tag.w{background:var(--ok-l);color:var(--ok);border-color:var(--ok-b)}
+  .content-cell{max-width:320px;white-space:pre-wrap;word-break:break-all;color:var(--text)}
+  .time-cell{white-space:nowrap;font-family:var(--mono);font-size:12px;color:var(--text-sub)}
+  .empty{color:var(--text-mute);text-align:center;padding:30px;background:var(--surface);
+    border:1px dashed var(--border-strong);border-radius:var(--r);margin-top:14px;font-size:13px}
 </style>
 </head>
 <body>
@@ -61,7 +67,7 @@
   <div class="titlebar">
     <div class="brand">
       <span class="logo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span>
-      <span>WordGuard <small>监控日志</small></span>
+      <span>雷犀 <small>监控日志</small></span>
     </div>
     <span class="count" id="count">0 条</span>
   </div>
@@ -91,7 +97,7 @@
     else if (m.type === 'rows') render(m.rows || []);
   });
   function query() {
-    window.chrome.webview.postMessage(JSON.stringify({type:'query', from: document.getElementById('fFrom').value, to: document.getElementById('fTo').value, filter: document.getElementById('fFilter').value}));
+    window.chrome.webview.postMessage({type:'query', from: document.getElementById('fFrom').value, to: document.getElementById('fTo').value, filter: document.getElementById('fFilter').value});
   }
   function render(rows) {
     document.getElementById('count').textContent = rows.length + ' 条';
@@ -110,7 +116,7 @@
   }
   const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const sevName = s => s === 'high' ? '高' : s === 'medium' ? '中' : '低';
-  window.chrome.webview.postMessage(JSON.stringify({type:'ready'}));
+  window.chrome.webview.postMessage({type:'ready'});
 </script>
 </body>
 </html>

@@ -2,11 +2,12 @@ using WordGuard.Core;
 
 namespace WordGuard.Client;
 
-/// <summary>告警通道（PRD：弹窗 / 声音 / 自有界面高亮，三项独立开关）。</summary>
+/// <summary>告警通道（PRD：弹窗 / 声音 / 语音播报 / 自有界面高亮，四项独立开关）。</summary>
 public enum AlertChannel
 {
     Popup,
     Sound,
+    Voice,
     Highlight,
 }
 
@@ -51,6 +52,7 @@ public sealed class AlertDispatcher
         var channels = new List<AlertChannel>();
         if (_metadata.AlertPopup) channels.Add(AlertChannel.Popup);
         if (_metadata.AlertSound) channels.Add(AlertChannel.Sound);
+        if (_metadata.AlertVoice) channels.Add(AlertChannel.Voice);
         if (_metadata.AlertHighlight) channels.Add(AlertChannel.Highlight);
 
         var top = active.Max(t => t.Severity);

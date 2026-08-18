@@ -8,11 +8,14 @@ public enum Severity
     High = 2,
 }
 
-/// <summary>匹配模式（PRD 数据契约 matchMode）。当前仅支持子串包含；后续可扩展整词/正则。</summary>
+/// <summary>匹配模式（PRD 数据契约 matchMode）。</summary>
 public enum MatchMode
 {
     /// <summary>子串包含匹配（默认）。</summary>
     Contains = 0,
+
+    /// <summary>模糊包含匹配：允许违禁词各字符之间插入非汉字/非字母数字的干扰字符（空格、标点、符号等）。</summary>
+    FuzzyContains = 1,
 }
 
 /// <summary>
@@ -32,8 +35,8 @@ public sealed record WordEntry
     /// <summary>严重级别。</summary>
     public Severity Severity { get; init; } = Severity.Medium;
 
-    /// <summary>匹配模式，默认子串包含。</summary>
-    public MatchMode MatchMode { get; init; } = MatchMode.Contains;
+    /// <summary>匹配模式，默认模糊包含（更灵敏，可跳过空格/标点等干扰字符）。</summary>
+    public MatchMode MatchMode { get; init; } = MatchMode.FuzzyContains;
 
     /// <summary>是否启用；禁用的词不参与匹配。</summary>
     public bool Enabled { get; init; } = true;

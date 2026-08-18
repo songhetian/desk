@@ -13,6 +13,7 @@ public sealed class DeployConfigForm : Form
     private DataGridView _grid = null!;
     private CheckBox _popup = null!;
     private CheckBox _sound = null!;
+    private CheckBox _voice = null!;
     private CheckBox _highlight = null!;
     private TextBox _soundPath = null!;
     private NumericUpDown _cooldown = null!;
@@ -45,10 +46,13 @@ public sealed class DeployConfigForm : Form
             _grid.Rows.Add(t.ExeName, t.ExePath ?? "");
         Controls.Add(_grid); y += 158;
 
-        _popup = new CheckBox { Left = 12, Top = y, Width = 160, Text = "弹窗提醒", Checked = _meta.AlertPopup };
-        _sound = new CheckBox { Left = 180, Top = y, Width = 160, Text = "声音提醒", Checked = _meta.AlertSound };
-        _highlight = new CheckBox { Left = 340, Top = y, Width = 160, Text = "高亮标记", Checked = _meta.AlertHighlight };
-        Controls.Add(_popup); Controls.Add(_sound); Controls.Add(_highlight); y += 34;
+        _popup = new CheckBox { Left = 12, Top = y, Width = 240, Text = "弹窗提醒", Checked = _meta.AlertPopup };
+        _sound = new CheckBox { Left = 280, Top = y, Width = 240, Text = "声音提醒", Checked = _meta.AlertSound };
+        Controls.Add(_popup); Controls.Add(_sound); y += 30;
+
+        _voice = new CheckBox { Left = 12, Top = y, Width = 240, Text = "语音播报", Checked = _meta.AlertVoice };
+        _highlight = new CheckBox { Left = 280, Top = y, Width = 240, Text = "高亮标记", Checked = _meta.AlertHighlight };
+        Controls.Add(_voice); Controls.Add(_highlight); y += 34;
 
         var lblSound = new Label { Left = 12, Top = y, Width = 120, Height = 22, Text = "自定义声音(wav)" };
         _soundPath = new TextBox { Left = 140, Top = y, Width = 372, Height = 22, Text = _meta.SoundFilePath ?? "" };
@@ -81,6 +85,7 @@ public sealed class DeployConfigForm : Form
         }
         _meta.AlertPopup = _popup.Checked;
         _meta.AlertSound = _sound.Checked;
+        _meta.AlertVoice = _voice.Checked;
         _meta.AlertHighlight = _highlight.Checked;
         _meta.SoundFilePath = _soundPath.Text.Trim();
         _meta.CooldownSeconds = (int)_cooldown.Value;

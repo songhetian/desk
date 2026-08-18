@@ -6,6 +6,7 @@ obj/
 
 # ===== 发布产物（员工包/管理端包，用脚本或手动重新 publish）=====
 publish/
+publish*/
 
 # ===== 本地 NuGet 源（WebView2 nupkg 9MB，不进 git）=====
 .nuget-local/
@@ -28,3 +29,10 @@ node_modules/
 *.tmp
 Thumbs.db
 Desktop.ini
+
+# ===== 前端构建产物（dist 占 327M，不进 git）=====
+dist/
+
+# ===== 本机残留垃圾文件 =====
+nul
+

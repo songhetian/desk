@@ -66,7 +66,17 @@ public class CaptureServiceTests : IDisposable
 
     private (CaptureService svc, FakeProbe probe, OrbStateController orb) Build()
     {
-        var lib = new LibraryFileSource(_libPath, TimeSpan.FromSeconds(30), watch: false);
+        // 需求#6：部署配置从客户端 AppSettings 提供，构造时传入 LibraryFileSource
+        var config = new LibraryMetadata
+        {
+            Targets = [new TargetSpec { ExeName = "WeChat.exe" }],
+            AlertPopup = true,
+            AlertSound = true,
+            AlertHighlight = true,
+            CooldownSeconds = 30,
+            LogRetentionDays = 30,
+        };
+        var lib = new LibraryFileSource(_libPath, TimeSpan.FromSeconds(30), config, watch: false);
         // 测试用较长告警窗口：避免慢环境（SQLite 写入延迟）下 3s 窗口提前过期导致的假阴性
         var orb = new OrbStateController(TimeSpan.FromHours(1));
         var dispatcher = new AlertDispatcher(lib.Metadata);
@@ -146,6 +156,40 @@ public class CaptureServiceTests : IDisposable
         svc.Tick();
         Assert.Equal(afterFirst, _audit.Count);
         Assert.Equal(1, afterFirst);
+    }
+
+    [Fact]
+    public void Stats_track_ticks_hits_and_alerts()
+    {
+        var (svc, probe, _) = Build();
+
+        // 初始状态
+        Assert.Equal(0, svc.Stats.TotalTicks);
+        Assert.Equal(0, svc.Stats.TextCapturedCount);
+        Assert.Equal(0, svc.Stats.AlertCount);
+
+        // Tick 1：有违禁词 → 告警
+        probe.Next = new WindowSnapshot("WeChat.exe", @"C:\WeChat\WeChat.exe", "聊天窗口", "保证包过", "ctx-1");
+        svc.Tick();
+        Assert.Equal(1, svc.Stats.TotalTicks);
+        Assert.Equal(1, svc.Stats.TextCapturedCount);
+        Assert.Equal(1, svc.Stats.AlertCount);
+
+        // Tick 2：文本不变 → 不重复处理，捕获计数也不增加（只有文本真正变化才算一次有效捕获）
+        svc.Tick();
+        Assert.Equal(2, svc.Stats.TotalTicks);
+        Assert.Equal(1, svc.Stats.TextCapturedCount);
+        Assert.Equal(1, svc.Stats.AlertCount); // 告警不重复
+
+        // Tick 3：无窗口 → 只累加 tick
+        probe.Next = null;
+        svc.Tick();
+        Assert.Equal(3, svc.Stats.TotalTicks);
+        Assert.Equal(1, svc.Stats.TextCapturedCount);
+        Assert.Equal(1, svc.Stats.AlertCount);
+
+        // 捕获率 = 1/3
+        Assert.InRange(svc.Stats.CaptureRate, 0.33, 0.34);
     }
 
     public void Dispose()

@@ -12,12 +12,14 @@ namespace WordGuard.Client;
 /// <param name="WindowTitle">前台窗口标题（审计用）。</param>
 /// <param name="Text">从目标输入框/可写控件读取到的当前已成型文本。</param>
 /// <param name="ContextId">输入框稳定标识（同一窗口同一框不变），去重维度；变化即视为新输入。</param>
+/// <param name="IsPinyin">是否为拼音输入（键盘钩子模式下为 true，需走拼音匹配）。</param>
 public sealed record WindowSnapshot(
     string ExeName,
     string ExePath,
     string WindowTitle,
     string Text,
-    string ContextId);
+    string ContextId,
+    bool IsPinyin = false);
 
 /// <summary>前台窗口探测抽象：把"如何拿到前台窗口文本"与监控逻辑解耦。</summary>
 public interface IWindowProbe
@@ -48,6 +50,34 @@ public sealed class AlertEventArgs : EventArgs
     }
 }
 
+/// <summary>捕获统计：用于监控健康度展示（轮询次数、成功捕获次数、告警次数）。</summary>
+public sealed class CaptureStats
+{
+    public long TotalTicks { get; internal set; }
+    public long TextCapturedCount { get; internal set; }
+    public long AlertCount { get; internal set; }
+
+    /// <summary>未确认的告警数（用户点击已知悉后减少）。用于悬浮球 badge 显示。</summary>
+    public int UnacknowledgedAlerts { get; internal set; }
+
+    /// <summary>最近一次捕获的文本（用于诊断面板展示，方便排查）。</summary>
+    public string LastCapturedText { get; internal set; } = "";
+
+    /// <summary>最近一次捕获的目标进程名（如 WeChat.exe）。</summary>
+    public string LastTargetExe { get; internal set; } = "";
+
+    /// <summary>最近一次捕获的窗口标题。</summary>
+    public string LastWindowTitle { get; internal set; } = "";
+
+    /// <summary>最近一次捕获的时间。</summary>
+    public DateTime LastCaptureTime { get; internal set; }
+
+    /// <summary>最近一次捕获的方式（UIA / 键盘钩子）。</summary>
+    public string LastCaptureMethod { get; internal set; } = "";
+
+    public double CaptureRate => TotalTicks == 0 ? 0.0 : (double)TextCapturedCount / TotalTicks;
+}
+
 /// <summary>
 /// 监控管线核心（纯逻辑，不依赖 UIA / WinForms）：把"窗口探测 → 引擎匹配 → 告警派遣 → orb 脉冲 → 审计落库"串成一次调用。
 ///
@@ -66,8 +96,14 @@ public sealed class CaptureService : IDisposable
     private readonly AuditLogStore _audit;
     private readonly Dictionary<string, string> _lastText = new();
 
+    /// <summary>捕获统计（线程安全的轻量读数，UI 展示用）。</summary>
+    public CaptureStats Stats { get; } = new();
+
     /// <summary>告警触发时广播（携带通道/命中词/审计 Id），供 UI 弹窗与响铃。</summary>
     public event EventHandler<AlertEventArgs>? AlertRaised;
+
+    /// <summary>命中违禁词时触发（无论是否被去重/冷却抑制），用于悬浮球闪烁等轻量提示。</summary>
+    public event EventHandler? WordHit;
 
     public CaptureService(IWindowProbe probe, LibraryFileSource lib,
         OrbStateController orb, AlertDispatcher dispatcher, AuditLogStore audit)
@@ -82,16 +118,30 @@ public sealed class CaptureService : IDisposable
     /// <summary>一次轮询：探测前台窗口并喂入管线。探测失败/无窗口直接静默返回。</summary>
     public void Tick()
     {
+        Stats.TotalTicks++;
+
         WindowSnapshot? snap;
         try { snap = _probe.Probe(); }
-        catch { return; } // 探针异常不应拖垮监控循环
+        catch { return; }
         if (snap is null) return;
 
-        Feed(snap.Text, snap.ExeName, snap.ExePath, snap.ContextId, snap.WindowTitle);
+        Feed(snap.Text, snap.ExeName, snap.ExePath, snap.ContextId, snap.WindowTitle, false, snap.IsPinyin);
     }
 
     /// <summary>捕获管线核心（轮询与"模拟命中"共用）。</summary>
     public void Feed(string text, string targetProcess, string targetProcessPath, string contextId, string windowTitle)
+    {
+        Feed(text, targetProcess, targetProcessPath, contextId, windowTitle, false, false);
+    }
+
+    public void Feed(string text, string targetProcess, string targetProcessPath, string contextId, string windowTitle, bool skipDedup)
+    {
+        Feed(text, targetProcess, targetProcessPath, contextId, windowTitle, skipDedup, false);
+    }
+
+    /// <param name="skipDedup">true 时跳过去重冷却（用于模拟测试，保证每次点击都触发告警）。</param>
+    /// <param name="isPinyin">true 时走拼音匹配路径（键盘钩子模式）。</param>
+    public void Feed(string text, string targetProcess, string targetProcessPath, string contextId, string windowTitle, bool skipDedup, bool isPinyin)
     {
         if (string.IsNullOrEmpty(text))
             return;
@@ -101,11 +151,27 @@ public sealed class CaptureService : IDisposable
             return;
         _lastText[contextId] = text;
 
-        var result = _lib.Current.ProcessCapture(new CaptureInput(text, targetProcess, targetProcessPath, contextId, DateTime.UtcNow));
+        Stats.TextCapturedCount++;
+        Stats.LastCapturedText = text;
+        Stats.LastTargetExe = targetProcess;
+        Stats.LastWindowTitle = windowTitle;
+        Stats.LastCaptureTime = DateTime.UtcNow;
+        Stats.LastCaptureMethod = isPinyin ? "键盘钩子(拼音)" : "UIA";
+
+        var result = _lib.Current.ProcessCapture(
+            new CaptureInput(text, targetProcess, targetProcessPath, contextId, DateTime.UtcNow, isPinyin),
+            skipDedup);
+
+        // 有命中词就触发 WordHit（用于悬浮球闪烁，不管是否被冷却抑制）
+        if (result.Triggered.Count > 0)
+            WordHit?.Invoke(this, EventArgs.Empty);
+
         var evt = _dispatcher.Dispatch(result);
 
         if (!evt.HasAlert) return;
 
+        Stats.AlertCount++;
+        Stats.UnacknowledgedAlerts++;
         _orb.PulseAlert(DateTime.UtcNow);
 
         var log = new AuditLogEntry
@@ -122,6 +188,13 @@ public sealed class CaptureService : IDisposable
         _audit.Add(log);
 
         AlertRaised?.Invoke(this, new AlertEventArgs(evt, text, targetProcess, windowTitle, contextId, log.Id));
+    }
+
+    /// <summary>确认一条告警（用户点击"已知悉"后调用，减少未确认计数）。</summary>
+    public void AcknowledgeAlert()
+    {
+        if (Stats.UnacknowledgedAlerts > 0)
+            Stats.UnacknowledgedAlerts--;
     }
 
     public void Dispose()

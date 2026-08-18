@@ -27,21 +27,21 @@ public sealed class LibraryFileSource : IDisposable
 
     private MonitorEngine _engine = null!;
     private LibraryStatus _status = new(false, false);
-    private LibraryMetadata _metadata = new();
+    private LibraryMetadata _config = new();
 
     /// <summary>每次成功重载后触发（含构造时的首次加载），便于 UI 刷新「词库来源 / 启用词数」。</summary>
     public event Action<MonitorEngine, LibraryStatus>? Reloaded;
 
     /// <summary>
     /// 构造词库文件源。
-    /// 注意：被监控目标、告警开关、声音路径等部署配置已从 <c>wordlib.json</c> 的 metadata 段读取，
-    /// 由管理员锁定、随词库下发（客户端只读），不再由本地 <see cref="AppSettings"/> 提供。
-    /// <paramref name="cooldown"/> 仅作为 metadata 缺失时的兜底去重窗口。
+    /// 需求#6：部署配置（监控目标/告警通道/声音路径等）由客户端本地 AppSettings 提供，
+    /// 不再从 wordlib.json 的 metadata 段读取。
     /// </summary>
-    public LibraryFileSource(string path, TimeSpan cooldown, bool watch = true, OrbStateController? orb = null)
+    public LibraryFileSource(string path, TimeSpan cooldown, LibraryMetadata config, bool watch = true, OrbStateController? orb = null)
     {
         _path = path;
         _cooldown = cooldown;
+        _config = config ?? new LibraryMetadata();
         _orb = orb;
         Reload();
 
@@ -70,10 +70,10 @@ public sealed class LibraryFileSource : IDisposable
         get { lock (_gate) return _status; }
     }
 
-    /// <summary>当前生效的部署配置（监控目标 / 三通道开关 / 声音路径 / 去重 / 保留），加锁读取。</summary>
+    /// <summary>当前生效的部署配置（来自客户端 AppSettings），加锁读取。</summary>
     public LibraryMetadata Metadata
     {
-        get { lock (_gate) return _metadata; }
+        get { lock (_gate) return _config; }
     }
 
     /// <summary>标记某「词 + 输入框」已被客服确认（委托给当前引擎的去重器）。</summary>
@@ -100,22 +100,50 @@ public sealed class LibraryFileSource : IDisposable
         }
     }
 
+    /// <summary>
+    /// 更新部署配置（监控目标/告警通道等）并立即重建引擎。
+    /// 需求#6：客户端本地配置变更后调用此方法使新配置生效。
+    /// </summary>
+    public void UpdateConfig(LibraryMetadata config)
+    {
+        lock (_gate)
+        {
+            _config = config ?? new LibraryMetadata();
+        }
+        Reload();
+    }
+
     /// <summary>手动触发热重载（测试或菜单「立即同步」调用）。</summary>
     public void Reload()
     {
         var exists = File.Exists(_path);
         var lib = WordLibrary.LoadFromFile(_path);
         var matcher = new AhoCorasickMatcher(lib.Words);
-        // 配置锁定：监控目标从词库 metadata 读取（管理员下发，客户端只读），叠加本地调试目标
-        var targets = lib.Metadata.Targets.Concat(_extraTargets).ToList();
-        var engine = new MonitorEngine(matcher, new AlertDedup(_cooldown), targets);
+
+        // 构建拼音匹配器：把每个违禁词转成拼音后建索引（用于键盘钩子兜底模式）
+        var pinyinWords = lib.Words
+            .Where(w => w.Enabled && !string.IsNullOrEmpty(w.Text))
+            .Select(w => new WordEntry
+            {
+                Id = w.Id,
+                Text = PinyinHelper.ToPinyin(w.Text), // 转成拼音
+                Category = w.Category,
+                Severity = w.Severity,
+                Enabled = w.Enabled,
+            })
+            .Where(w => w.Text.Length >= 2) // 拼音太短的过滤掉（如单个字母）
+            .ToList();
+        var pinyinMatcher = new AhoCorasickMatcher(pinyinWords);
+
+        // 需求#6：监控目标从客户端 AppSettings 配置读取，叠加本地调试目标
+        var targets = _config.Targets.Concat(_extraTargets).ToList();
+        var engine = new MonitorEngine(matcher, pinyinMatcher, new AlertDedup(_cooldown), targets);
         var status = new LibraryStatus(exists, lib.NewerSchemaDetected);
 
         lock (_gate)
         {
             _engine = engine;
             _status = status;
-            _metadata = lib.Metadata;
         }
 
         // 词库缺失 → 悬浮球离线；恢复 → 退出离线（评审遗留修复）

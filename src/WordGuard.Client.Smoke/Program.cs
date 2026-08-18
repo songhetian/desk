@@ -25,16 +25,17 @@ File.WriteAllText(libPath, JsonSerializer.Serialize(lib, new JsonSerializerOptio
 }));
 
 // 2) 装配真实组件（watch:false 避免临时文件被监视，确定性更强）
-//    监控目标 / 三通道开关来自词库 metadata（配置锁定，客户端只读）
-var lib2 = WordLibrary.LoadFromFile(libPath);
-lib2.Metadata.Targets.Add(new TargetSpec { ExeName = "notepad.exe" });
-lib2.Metadata.AlertPopup = false;   // 关闭弹窗通道，避免在无头环境创建 Form
-lib2.Metadata.AlertSound = false;
-lib2.Metadata.AlertHighlight = true;
-lib2.Metadata.CooldownSeconds = 30;
-File.WriteAllText(libPath, lib2.ToJson());
+//    需求#6：监控目标 / 三通道开关由客户端本地配置提供（不再从 wordlib.json metadata 读取）
+var config = new LibraryMetadata
+{
+    Targets = { new TargetSpec { ExeName = "notepad.exe" } },
+    AlertPopup = false,   // 关闭弹窗通道，避免在无头环境创建 Form
+    AlertSound = false,
+    AlertHighlight = true,
+    CooldownSeconds = 30,
+};
 
-var source = new LibraryFileSource(libPath, TimeSpan.FromSeconds(30), watch: false);
+var source = new LibraryFileSource(libPath, TimeSpan.FromSeconds(30), config, watch: false);
 var orb = new OrbStateController(TimeSpan.FromSeconds(3));
 var dispatcher = new AlertDispatcher(source.Metadata);
 var audit = new AuditLogStore("Data Source=" + dbPath);
@@ -90,7 +91,7 @@ Check("非监控进程 → 不触发告警（零打扰）", !off);
 Check("审计日志仍为 1 行", audit.Count == 1);
 
 // 6) 离线态：词库文件缺失时 orb 离线、引擎降级为空词库
-var offline = new LibraryFileSource(Path.Combine(dir, "missing.json"), TimeSpan.FromSeconds(30), watch: false);
+var offline = new LibraryFileSource(Path.Combine(dir, "missing.json"), TimeSpan.FromSeconds(30), new LibraryMetadata(), watch: false);
 Check("词库缺失 → Status.FileExists 为 false（悬浮球离线）", !offline.Status.FileExists);
 var safe = offline.Current.ProcessCapture(new CaptureInput("含违禁词", "notepad.exe", "", "c", DateTime.UtcNow));
 Check("词库缺失 → 引擎降级为空词库（不崩溃）", !dispatcher.Dispatch(safe).HasAlert);

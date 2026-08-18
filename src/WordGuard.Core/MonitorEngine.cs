@@ -9,7 +9,14 @@ namespace WordGuard.Core;
 /// <param name="TargetProcessPath">输入所属进程完整路径（可选），与 <see cref="TargetSpec.ExePath"/> 做前缀匹配。</param>
 /// <param name="ContextId">输入框标识（同一窗口同一框稳定不变），去重按「词 + 框」维度。</param>
 /// <param name="Timestamp">捕获时刻（UTC）。</param>
-public sealed record CaptureInput(string Text, string TargetProcess, string TargetProcessPath, string ContextId, DateTime Timestamp);
+/// <param name="IsPinyin">是否为拼音输入（键盘钩子兜底模式下为 true，此时会额外做拼音匹配）。</param>
+public sealed record CaptureInput(
+    string Text,
+    string TargetProcess,
+    string TargetProcessPath,
+    string ContextId,
+    DateTime Timestamp,
+    bool IsPinyin = false);
 
 /// <summary>单个命中词在本次捕获中的处理结果。</summary>
 /// <param name="Word">命中的违禁词。</param>
@@ -31,13 +38,19 @@ public sealed record CaptureResult(bool IsMonitoredTarget, IReadOnlyList<Trigger
 public sealed class MonitorEngine
 {
     private readonly IMatcher _matcher;
+    private readonly IMatcher? _pinyinMatcher;
     private readonly AlertDedup _dedup;
     private readonly List<TargetSpec> _targets;
     private readonly Dictionary<string, string> _lastText = new();
+    private readonly Dictionary<string, string> _lastPinyinText = new();
 
     public MonitorEngine(IMatcher matcher, AlertDedup dedup, IEnumerable<TargetSpec> targets)
+        : this(matcher, null, dedup, targets) { }
+
+    public MonitorEngine(IMatcher matcher, IMatcher? pinyinMatcher, AlertDedup dedup, IEnumerable<TargetSpec> targets)
     {
         _matcher = matcher;
+        _pinyinMatcher = pinyinMatcher;
         _dedup = dedup;
         _targets = targets.ToList();
     }
@@ -65,15 +78,36 @@ public sealed class MonitorEngine
 
     public CaptureResult ProcessCapture(CaptureInput input)
     {
+        return ProcessCapture(input, false);
+    }
+
+    /// <param name="skipDedup">true 时跳过去重/冷却（用于模拟测试，保证每次都触发）。</param>
+    public CaptureResult ProcessCapture(CaptureInput input, bool skipDedup)
+    {
         if (!IsMonitored(input.TargetProcess, input.TargetProcessPath))
             return new CaptureResult(false, Array.Empty<TriggeredWord>());
 
-        // 文本变更 → 清除该输入框的「已确认」抑制（PRD：确认后直至文本变更清除该词）
-        if (_lastText.TryGetValue(input.ContextId, out var prev) && prev != input.Text)
-            _dedup.Reset(input.ContextId);
-        _lastText[input.ContextId] = input.Text;
+        IReadOnlyList<MatchHit> hits;
+        bool isPinyinMode = input.IsPinyin && _pinyinMatcher is not null;
 
-        var hits = _matcher.Match(input.Text);
+        if (isPinyinMode)
+        {
+            // 拼音模式：用拼音匹配器匹配
+            var pinyinText = input.Text.ToLowerInvariant();
+            // 文本变更 → 清除该输入框的「已确认」抑制
+            if (_lastPinyinText.TryGetValue(input.ContextId, out var prevPy) && prevPy != pinyinText)
+                _dedup.Reset(input.ContextId);
+            _lastPinyinText[input.ContextId] = pinyinText;
+            hits = _pinyinMatcher!.Match(pinyinText);
+        }
+        else
+        {
+            // 普通模式：原文本匹配
+            if (_lastText.TryGetValue(input.ContextId, out var prev) && prev != input.Text)
+                _dedup.Reset(input.ContextId);
+            _lastText[input.ContextId] = input.Text;
+            hits = _matcher.Match(input.Text);
+        }
 
         // 同一词在文本中可能多次出现、或在词库中对应多条条目：聚合位置并取最高严重度
         var byWord = new Dictionary<string, (Severity Severity, List<(int Start, int Length)> Pos, Guid Id)>();
@@ -90,7 +124,7 @@ public sealed class MonitorEngine
         var triggered = new List<TriggeredWord>();
         foreach (var (word, agg) in byWord)
         {
-            var shouldAlert = _dedup.ShouldAlert(word, input.ContextId, input.Timestamp);
+            var shouldAlert = skipDedup || _dedup.ShouldAlert(word, input.ContextId, input.Timestamp);
             triggered.Add(new TriggeredWord(word, agg.Severity, shouldAlert, agg.Pos, agg.Id));
         }
         return new CaptureResult(true, triggered);

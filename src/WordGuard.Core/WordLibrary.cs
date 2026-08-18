@@ -11,6 +11,7 @@ namespace WordGuard.Core;
 /// </summary>
 public sealed class WordLibrary
 {
+    // 注意：Categories/WordEntry/TargetSpec/LibraryMetadata 等数据类放在本文件末尾
     /// <summary>当前程序能够理解的最高 schema 版本。</summary>
     public const int CurrentSchemaVersion = 1;
 
@@ -24,9 +25,16 @@ public sealed class WordLibrary
     public List<WordEntry> Words { get; set; } = new();
 
     /// <summary>
-    /// 部署配置元数据段（监控目标 / 三通道开关 / 声音路径 / 去重 / 保留）。
-    /// 由管理员在 Studio 配置并随词库下发，客户端只读；老文件缺省时返回默认值。
+    /// 分类列表（独立维护，允许空分类存在）。旧词库无此字段时由词条动态推导并补齐。
     /// </summary>
+    public List<CategorySpec> Categories { get; set; } = new();
+
+    /// <summary>
+    /// 部署配置元数据段（监控目标 / 三通道开关 / 声音路径 / 去重 / 保留）。
+    /// 需求#6：部署配置由客户端本地 AppSettings 管理，不再随 wordlib.json 下发。
+    /// [JsonIgnore] 确保导出时不含此字段；旧文件中的 metadata 段在反序列化时自动忽略。
+    /// </summary>
+    [JsonIgnore]
     public LibraryMetadata Metadata { get; set; } = new();
 
     /// <summary>
@@ -55,23 +63,49 @@ public sealed class WordLibrary
     /// <summary>序列化为带缩进的 JSON 文本，便于人工备份与共享目录交换。</summary>
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions());
 
+    /// <summary>默认重试次数（文件被占用时的重试次数）。</summary>
+    public const int DefaultMaxRetries = 3;
+    /// <summary>默认重试间隔（毫秒）。</summary>
+    public const int DefaultRetryDelayMs = 50;
+
     /// <summary>
     /// 从文件加载词库。文件不存在时返回<b>空词库</b>（不抛异常），
     /// 使监控在词库缺失时继续运行（仅不匹配任何词），而非崩溃。缺失判定由调用方用于离线指示。
+    /// 遇到文件被占用（IOException）时自动重试，重试失败后降级为空词库。
     /// </summary>
     public static WordLibrary LoadFromFile(string path)
+        => LoadFromFile(path, DefaultMaxRetries, DefaultRetryDelayMs);
+
+    /// <summary>
+    /// 从文件加载词库，可配置重试参数。
+    /// </summary>
+    public static WordLibrary LoadFromFile(string path, int maxRetries, int retryDelayMs)
     {
         if (!File.Exists(path))
             return new WordLibrary();
-        try
+
+        var retries = Math.Max(0, maxRetries);
+        for (int i = 0; i <= retries; i++)
         {
-            return Load(File.ReadAllText(path));
+            try
+            {
+                return Load(File.ReadAllText(path));
+            }
+            catch (JsonException)
+            {
+                // 文件损坏：同样降级为空词库，保证监控不中断
+                return new WordLibrary();
+            }
+            catch (IOException)
+            {
+                // 文件被占用（正在写入中）：重试
+                if (i < retries)
+                    System.Threading.Thread.Sleep(retryDelayMs);
+                else
+                    return new WordLibrary(); // 重试用尽：降级为空
+            }
         }
-        catch (JsonException)
-        {
-            // 文件损坏：同样降级为空词库，保证监控不中断
-            return new WordLibrary();
-        }
+        return new WordLibrary();
     }
 
     private static JsonSerializerOptions JsonOptions() => new()
@@ -120,6 +154,12 @@ public sealed class LibraryMetadata
     /// <summary>自有界面高亮开关（默认开）。</summary>
     public bool AlertHighlight { get; set; } = true;
 
+    /// <summary>语音播报开关（默认开）。命中违禁词时朗读告警文案。</summary>
+    public bool AlertVoice { get; set; } = true;
+
+    /// <summary>检测到违禁词后自动删除输入内容（Ctrl+A + Backspace），默认关。</summary>
+    public bool AutoDelete { get; set; } = false;
+
     /// <summary>自定义告警声音文件路径（可选）。留空则使用系统默认提示音。可相对词库文件所在目录。</summary>
     public string SoundFilePath { get; set; } = "";
 
@@ -128,4 +168,14 @@ public sealed class LibraryMetadata
 
     /// <summary>审计日志本地保留天数。默认 30 天。</summary>
     public int LogRetentionDays { get; set; } = 30;
+}
+
+/// <summary>违禁词分类定义（独立持久化，允许空分类）。</summary>
+public sealed class CategorySpec
+{
+    /// <summary>分类名称（唯一标识）。</summary>
+    public string Name { get; set; } = "";
+
+    /// <summary>分类说明（可选）。</summary>
+    public string Description { get; set; } = "";
 }

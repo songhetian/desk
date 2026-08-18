@@ -153,5 +153,57 @@ public class MonitorEngineTests
         var no = engine.ProcessCapture(new CaptureInput("可以退货", "wechat.exe", @"C:\Other\WeChat.exe", "box1", DateTime.UtcNow));
         Assert.False(no.IsMonitoredTarget);
     }
+
+    [Fact]
+    public void Empty_word_library_does_not_throw_and_returns_no_hits()
+    {
+        var engine = Engine(new[] { "cs.exe" },
+            Enumerable.Empty<WordEntry>(),
+            TimeSpan.FromSeconds(30));
+
+        var r = engine.ProcessCapture(new CaptureInput("任意文本内容", "cs.exe", "", "box1", DateTime.UtcNow));
+
+        Assert.True(r.IsMonitoredTarget);
+        Assert.Empty(r.Triggered);
+    }
+
+    [Fact]
+    public void Empty_target_list_makes_everything_non_monitored()
+    {
+        var engine = Engine(Enumerable.Empty<string>(),
+            new[] { new WordEntry { Text = "退货", Enabled = true, Severity = Severity.High } },
+            TimeSpan.FromSeconds(30));
+
+        var r = engine.ProcessCapture(new CaptureInput("可以退货", "cs.exe", "", "box1", DateTime.UtcNow));
+
+        Assert.False(r.IsMonitoredTarget);
+        Assert.Empty(r.Triggered);
+    }
+
+    [Fact]
+    public void Empty_input_text_does_not_throw()
+    {
+        var engine = Engine(new[] { "cs.exe" },
+            new[] { new WordEntry { Text = "退货", Enabled = true, Severity = Severity.High } },
+            TimeSpan.FromSeconds(30));
+
+        var r = engine.ProcessCapture(new CaptureInput("", "cs.exe", "", "box1", DateTime.UtcNow));
+
+        Assert.True(r.IsMonitoredTarget);
+        Assert.Empty(r.Triggered);
+    }
+
+    [Fact]
+    public void Null_input_text_is_treated_as_empty()
+    {
+        var engine = Engine(new[] { "cs.exe" },
+            new[] { new WordEntry { Text = "退货", Enabled = true, Severity = Severity.High } },
+            TimeSpan.FromSeconds(30));
+
+        var r = engine.ProcessCapture(new CaptureInput(null!, "cs.exe", "", "box1", DateTime.UtcNow));
+
+        Assert.True(r.IsMonitoredTarget);
+        Assert.Empty(r.Triggered);
+    }
 }
 

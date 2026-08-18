@@ -1,95 +1,300 @@
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using WordGuard.Core;
 
 namespace WordGuard.Studio.App;
 
-/// <summary>单条违禁词新增/编辑对话框（PRD 管理员用户故事 1–2、6）。</summary>
+/// <summary>
+/// 词条编辑对话框（Win11 风格，圆角卡片式）。
+/// 分类使用 ComboBox 下拉选择，支持手动输入新分类。
+/// </summary>
 public sealed class WordEditForm : Form
 {
+    private TextBox _txtWord = null!;
+    private ComboBox _cbCategory = null!;
+    private ComboBox _cbSeverity = null!;
+    private CheckBox _chkEnabled = null!;
+
     private readonly WordEntry? _original;
-    private TextBox _text = null!;
-    private TextBox _category = null!;
-    private ComboBox _severity = null!;
-    private ComboBox _matchMode = null!;
-    private CheckBox _enabled = null!;
+    private readonly List<string> _categoryList;
 
     public WordEntry? Result { get; private set; }
 
-    public WordEditForm(WordEntry? original = null)
+    private static readonly Color Primary = Color.FromArgb(59, 130, 246);
+    private static readonly Color PrimaryHover = Color.FromArgb(37, 99, 235);
+    private static readonly Color BorderGray = Color.FromArgb(229, 231, 235);
+    private static readonly Color BgGray = Color.FromArgb(249, 250, 251);
+
+    public WordEditForm(WordEntry? original, List<string> categoryList)
     {
         _original = original;
-        Text = original is null ? "新增违禁词" : "编辑违禁词";
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false; MinimizeBox = false;
-        Size = new Size(420, 280);
+        _categoryList = categoryList ?? new List<string>();
+
+        Text = original is null ? "新增词条" : "编辑词条";
+        Size = new Size(520, 420);
+        MinimumSize = new Size(480, 400);
         StartPosition = FormStartPosition.CenterParent;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = false;
+        MinimizeBox = false;
+        Font = new Font("Microsoft YaHei UI", 9f);
+        BackColor = Color.White;
 
-        int y = 16;
-        AddLabel("违禁词文本（必填）", 12, y); y += 18;
-        _text = AddTextBox(original?.Text ?? "", 12, y, 380, 22); y += 30;
-
-        AddLabel("分类（可选）", 12, y); y += 18;
-        _category = AddTextBox(original?.Category ?? "", 12, y, 380, 22); y += 30;
-
-        AddLabel("严重级别", 12, y);
-        _severity = new ComboBox { Left = 12, Top = y + 18, Width = 180, DropDownStyle = ComboBoxStyle.DropDownList };
-        _severity.Items.AddRange(new[] { "低", "中", "高" });
-        _severity.SelectedIndex = original is null ? 1 : (int)original.Severity;
-        Controls.Add(_severity); y += 48;
-
-        AddLabel("匹配模式", 210, y - 48);
-        _matchMode = new ComboBox { Left = 210, Top = y - 30, Width = 180, DropDownStyle = ComboBoxStyle.DropDownList };
-        _matchMode.Items.AddRange(new[] { "包含(contains)" });
-        _matchMode.SelectedIndex = 0;
-        Controls.Add(_matchMode); y += 6;
-
-        _enabled = new CheckBox { Left = 12, Top = y, Width = 200, Text = "启用", Checked = original?.Enabled ?? true };
-        Controls.Add(_enabled); y += 34;
-
-        var ok = new Button { Text = "确定", Left = 226, Top = y - 6, Width = 80, Height = 30, DialogResult = DialogResult.OK };
-        ok.Click += (_, _) => Save();
-        Controls.Add(ok);
-        var cancel = new Button { Text = "取消", Left = 312, Top = y - 6, Width = 80, Height = 30, DialogResult = DialogResult.Cancel };
-        Controls.Add(cancel);
+        BuildUi();
+        LoadData();
     }
 
-    private void Save()
+    protected override void OnPaint(PaintEventArgs e)
     {
-        var text = _text.Text.Trim();
-        if (text.Length == 0) { MessageBox.Show("违禁词文本不能为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+        base.OnPaint(e);
+        // 顶部标题栏渐变
+        var rect = new Rectangle(0, 0, ClientSize.Width, 56);
+        using var brush = new LinearGradientBrush(rect,
+            Color.FromArgb(248, 250, 252), Color.White, LinearGradientMode.Vertical);
+        e.Graphics.FillRectangle(brush, rect);
+        using var pen = new Pen(BorderGray);
+        e.Graphics.DrawLine(pen, 0, 55, ClientSize.Width, 55);
+    }
 
-        Result = (Result = _original) switch
+    private void BuildUi()
+    {
+        // ---- 内容区容器（带左右 padding）----
+        var contentPanel = new Panel
         {
-            not null => _original! with
-            {
-                Text = text,
-                Category = _category.Text.Trim(),
-                Severity = (Severity)_severity.SelectedIndex,
-                MatchMode = MatchMode.Contains,
-                Enabled = _enabled.Checked,
-            },
-            _ => new WordEntry
-            {
-                Text = text,
-                Category = _category.Text.Trim(),
-                Severity = (Severity)_severity.SelectedIndex,
-                MatchMode = MatchMode.Contains,
-                Enabled = _enabled.Checked,
-            },
+            Dock = DockStyle.Fill,
+            Padding = new Padding(32, 16, 32, 16),
         };
+
+        var y = 0;
+
+        // 违禁词
+        var lblWord = new Label
+        {
+            Text = "违禁词",
+            Left = 32,
+            Top = 68,
+            AutoSize = true,
+            ForeColor = Color.FromArgb(17, 24, 39),
+            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+        };
+        Controls.Add(lblWord);
+
+        _txtWord = new TextBox
+        {
+            Left = 32,
+            Top = 92,
+            Width = 444,
+            Height = 36,
+            BorderStyle = BorderStyle.FixedSingle,
+            Font = new Font("Microsoft YaHei UI", 10f),
+            PlaceholderText = "请输入违禁词，如「最低价」",
+        };
+        Controls.Add(_txtWord);
+
+        // 必填星号
+        var lblRequired = new Label
+        {
+            Text = "*",
+            Left = 32 + _txtWord.Width - 12,
+            Top = 72,
+            AutoSize = true,
+            ForeColor = Color.FromArgb(239, 68, 68),
+            Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold),
+        };
+        Controls.Add(lblRequired);
+
+        // 分类
+        var lblCat = new Label
+        {
+            Text = "分类",
+            Left = 32,
+            Top = 148,
+            AutoSize = true,
+            ForeColor = Color.FromArgb(17, 24, 39),
+            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+        };
+        Controls.Add(lblCat);
+
+        _cbCategory = new ComboBox
+        {
+            Left = 32,
+            Top = 172,
+            Width = 444,
+            Height = 36,
+            DropDownStyle = ComboBoxStyle.DropDown,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Microsoft YaHei UI", 10f),
+        };
+        _cbCategory.Items.AddRange(_categoryList.ToArray());
+        Controls.Add(_cbCategory);
+
+        var lblCatHint = new Label
+        {
+            Text = "可直接输入新分类名",
+            Left = 90,
+            Top = 148,
+            AutoSize = true,
+            ForeColor = Color.FromArgb(156, 163, 175),
+            Font = new Font("Microsoft YaHei UI", 8.5f),
+        };
+        Controls.Add(lblCatHint);
+
+        // 严重度
+        var lblSeverity = new Label
+        {
+            Text = "严重度",
+            Left = 32,
+            Top = 228,
+            AutoSize = true,
+            ForeColor = Color.FromArgb(17, 24, 39),
+            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+        };
+        Controls.Add(lblSeverity);
+
+        _cbSeverity = new ComboBox
+        {
+            Left = 32,
+            Top = 252,
+            Width = 444,
+            Height = 36,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Microsoft YaHei UI", 10f),
+        };
+        _cbSeverity.Items.AddRange(new object[] { "高 - 严重违规（直接拦截）", "中 - 中等违规（警告提示）", "低 - 轻微违规（记录审计）" });
+        _cbSeverity.SelectedIndex = 1;
+        Controls.Add(_cbSeverity);
+
+        // 启用状态
+        _chkEnabled = new CheckBox
+        {
+            Text = "启用该词条（关闭后不参与检测）",
+            Left = 32,
+            Top = 308,
+            AutoSize = true,
+            Checked = true,
+            Font = new Font("Microsoft YaHei UI", 9.5f),
+            ForeColor = Color.FromArgb(55, 65, 81),
+        };
+        Controls.Add(_chkEnabled);
+
+        // 底部按钮栏
+        var btnPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 60,
+            BackColor = BgGray,
+        };
+        var btnCancel = new Button
+        {
+            Text = "取消",
+            DialogResult = DialogResult.Cancel,
+            Size = new Size(96, 36),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.White,
+            ForeColor = Color.FromArgb(75, 85, 99),
+            Font = new Font("Microsoft YaHei UI", 9f),
+        };
+        btnCancel.FlatAppearance.BorderColor = BorderGray;
+        btnCancel.FlatAppearance.MouseOverBackColor = Color.FromArgb(243, 244, 246);
+
+        var btnOk = new Button
+        {
+            Text = _original is null ? "添加" : "保存",
+            DialogResult = DialogResult.OK,
+            Size = new Size(96, 36),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Primary,
+            ForeColor = Color.White,
+            Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
+        };
+        btnOk.FlatAppearance.BorderSize = 0;
+        btnOk.MouseEnter += (_, _) => btnOk.BackColor = PrimaryHover;
+        btnOk.MouseLeave += (_, _) => btnOk.BackColor = Primary;
+        btnOk.Click += (_, _) => OnOk();
+
+        void LayoutBtns(object? s, EventArgs e)
+        {
+            var w = btnPanel.ClientSize.Width;
+            btnOk.Location = new Point(w - 128, 12);
+            btnCancel.Location = new Point(w - 236, 12);
+        }
+        btnPanel.Resize += LayoutBtns;
+        btnPanel.Controls.AddRange(new Control[] { btnCancel, btnOk });
+        Controls.Add(btnPanel);
+
+        // 标题文字
+        var lblTitle = new Label
+        {
+            Text = _original is null ? "新增词条" : "编辑词条",
+            Left = 32,
+            Top = 16,
+            AutoSize = true,
+            Font = new Font("Microsoft YaHei UI", 11f, FontStyle.Bold),
+            ForeColor = Color.FromArgb(17, 24, 39),
+        };
+        Controls.Add(lblTitle);
+
+        AcceptButton = btnOk;
+        CancelButton = btnCancel;
+    }
+
+    private void LoadData()
+    {
+        if (_original is null) return;
+
+        _txtWord.Text = _original.Text;
+        _cbCategory.Text = _original.Category ?? "";
+        _cbSeverity.SelectedIndex = _original.Severity switch
+        {
+            Severity.High => 0,
+            Severity.Medium => 1,
+            _ => 2,
+        };
+        _chkEnabled.Checked = _original.Enabled;
+    }
+
+    private void OnOk()
+    {
+        var word = _txtWord.Text?.Trim() ?? "";
+        if (string.IsNullOrEmpty(word))
+        {
+            MessageBox.Show(this, "请输入违禁词", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            DialogResult = DialogResult.None;
+            _txtWord.Focus();
+            return;
+        }
+
+        var category = _cbCategory.Text?.Trim() ?? "";
+        var severity = _cbSeverity.SelectedIndex switch
+        {
+            0 => Severity.High,
+            1 => Severity.Medium,
+            _ => Severity.Low,
+        };
+
+        if (_original is null)
+        {
+            Result = new WordEntry
+            {
+                Text = word,
+                Category = category,
+                Severity = severity,
+                Enabled = _chkEnabled.Checked,
+            };
+        }
+        else
+        {
+            Result = _original with
+            {
+                Text = word,
+                Category = category,
+                Severity = severity,
+                Enabled = _chkEnabled.Checked,
+            };
+        }
+
         DialogResult = DialogResult.OK;
-        Close();
-    }
-
-    private Label AddLabel(string text, int x, int y)
-    {
-        var l = new Label { Left = x, Top = y, Width = 380, Text = text };
-        Controls.Add(l); return l;
-    }
-
-    private TextBox AddTextBox(string text, int x, int y, int w, int h)
-    {
-        var t = new TextBox { Left = x, Top = y, Width = w, Height = h, Text = text };
-        Controls.Add(t); return t;
     }
 }

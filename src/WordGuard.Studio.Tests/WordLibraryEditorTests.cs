@@ -104,4 +104,74 @@ public class WordLibraryEditorTests
         Assert.NotEqual(DateTime.MinValue, back.UpdatedAt);
         Assert.True(back.UpdatedAt <= DateTime.UtcNow + TimeSpan.FromSeconds(1));
     }
+
+    [Fact]
+    public void BulkRemove_deletes_only_selected_ids_and_reports_count()
+    {
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+        var id3 = Guid.NewGuid();
+        var lib = new WordLibrary
+        {
+            Words =
+            {
+                new WordEntry { Id = id1, Text = "a" },
+                new WordEntry { Id = id2, Text = "b" },
+                new WordEntry { Id = id3, Text = "c" },
+            }
+        };
+        var editor = new WordLibraryEditor(lib);
+
+        var removed = editor.BulkRemove([id1, id2, Guid.NewGuid()]); // 第三个不存在
+
+        Assert.Equal(2, removed);
+        Assert.Single(lib.Words);
+        Assert.Equal("c", lib.Words[0].Text);
+    }
+
+    [Fact]
+    public void BulkRemove_with_empty_input_is_noop()
+    {
+        var lib = new WordLibrary { Words = { new WordEntry { Text = "a" } } };
+        var editor = new WordLibraryEditor(lib);
+
+        Assert.Equal(0, editor.BulkRemove(Array.Empty<Guid>()));
+        Assert.Single(lib.Words);
+    }
+
+    [Fact]
+    public void BulkSetEnabled_flips_only_selected_and_counts_only_changed()
+    {
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+        var id3 = Guid.NewGuid();
+        var lib = new WordLibrary
+        {
+            Words =
+            {
+                new WordEntry { Id = id1, Text = "a", Enabled = true },
+                new WordEntry { Id = id2, Text = "b", Enabled = false },
+                new WordEntry { Id = id3, Text = "c", Enabled = true },
+            }
+        };
+        var editor = new WordLibraryEditor(lib);
+
+        // 把 id1、id2 设为停用：id1 变化、id2 已停用不计；id3 不在集合不受影响
+        var changed = editor.BulkSetEnabled([id1, id2], false);
+
+        Assert.Equal(1, changed);
+        Assert.False(lib.Words[0].Enabled); // id1 -> 停用
+        Assert.False(lib.Words[1].Enabled); // id2 仍停用
+        Assert.True(lib.Words[2].Enabled);  // id3 不变
+    }
+
+    [Fact]
+    public void BulkSetEnabled_ignores_missing_ids()
+    {
+        var lib = new WordLibrary { Words = { new WordEntry { Text = "a", Enabled = false } } };
+        var editor = new WordLibraryEditor(lib);
+
+        Assert.Equal(0, editor.BulkSetEnabled([Guid.NewGuid()], true));
+        Assert.False(lib.Words[0].Enabled);
+    }
 }

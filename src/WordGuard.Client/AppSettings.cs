@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using WordGuard.Core;
 
@@ -31,10 +32,31 @@ public sealed class AppSettings
     /// </summary>
     public ClientDeployment? Deployment { get; set; }
 
+    /// <summary>监控目标进程名列表（如 "WeChat.exe"）。客户端本地配置（需求#6）。默认空。</summary>
+    public List<string> MonitorTargets { get; set; } = new();
+
+    /// <summary>弹窗告警开关（默认开）。客户端本地配置。</summary>
+    public bool AlertPopup { get; set; } = true;
+
+    /// <summary>声音告警开关（默认开）。客户端本地配置。</summary>
+    public bool AlertSound { get; set; } = true;
+
+    /// <summary>自有界面高亮开关（默认开）。客户端本地配置。</summary>
+    public bool AlertHighlight { get; set; } = true;
+
+    /// <summary>语音播报开关（默认开）。客户端本地配置。</summary>
+    public bool AlertVoice { get; set; } = true;
+
+    /// <summary>检测到违禁词后自动删除（Ctrl+A + Backspace），默认关。客户端本地配置。</summary>
+    public bool AutoDelete { get; set; } = false;
+
+    /// <summary>自定义告警声音文件路径（可选）。留空则使用随包默认提示音。客户端本地配置。</summary>
+    public string SoundFilePath { get; set; } = "";
+
     /// <summary>
     /// 兜底：词库 metadata 缺失时的告警去重窗口（秒）。默认 30s。（正常情况以生效配置为准。）
     /// </summary>
-    public int CooldownSeconds { get; set; } = 30;
+    public int CooldownSeconds { get; set; } = 8;
 
     /// <summary>
     /// 兜底：词库 metadata 缺失时的审计日志本地保留天数。默认 30 天。（正常情况以生效配置为准。）
@@ -58,8 +80,34 @@ public sealed class AppSettings
         if (d.AlertPopup.HasValue) m.AlertPopup = d.AlertPopup.Value;
         if (d.AlertSound.HasValue) m.AlertSound = d.AlertSound.Value;
         if (d.AlertHighlight.HasValue) m.AlertHighlight = d.AlertHighlight.Value;
+        if (d.AlertVoice.HasValue) m.AlertVoice = d.AlertVoice.Value;
+        if (d.AutoDelete.HasValue) m.AutoDelete = d.AutoDelete.Value;
         if (d.CooldownSeconds.HasValue) m.CooldownSeconds = d.CooldownSeconds.Value;
         if (d.LogRetentionDays.HasValue) m.LogRetentionDays = d.LogRetentionDays.Value;
+    }
+
+    /// <summary>
+    /// 把客户端本地配置转换为 <see cref="LibraryMetadata"/>，供 LibraryFileSource 和 AlertDispatcher 使用。
+    /// 需求#6：管理端只生成违禁词库，部署配置由客户端本地管理。
+    /// </summary>
+    public LibraryMetadata ToMetadata()
+    {
+        return new LibraryMetadata
+        {
+            Targets = MonitorTargets
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim())
+                .Select(t => new TargetSpec { ExeName = t })
+                .ToList(),
+            AlertPopup = AlertPopup,
+            AlertSound = AlertSound,
+            AlertHighlight = AlertHighlight,
+            AlertVoice = AlertVoice,
+            AutoDelete = AutoDelete,
+            SoundFilePath = SoundFilePath ?? "",
+            CooldownSeconds = CooldownSeconds,
+            LogRetentionDays = LogRetentionDays,
+        };
     }
 
     /// <summary>从文件加载配置。文件不存在或内容为空/损坏时返回<b>默认值</b>（不抛异常），使客户端总能启动。</summary>
@@ -121,6 +169,12 @@ public sealed class ClientDeployment
 
     /// <summary>自有界面高亮开关（null=沿用下发）。</summary>
     public bool? AlertHighlight { get; set; }
+
+    /// <summary>语音播报开关（null=沿用下发）。</summary>
+    public bool? AlertVoice { get; set; }
+
+    /// <summary>自动删除（Ctrl+A + Backspace）开关（null=沿用下发）。</summary>
+    public bool? AutoDelete { get; set; }
 
     /// <summary>告警去重窗口（秒，null=沿用下发）。</summary>
     public int? CooldownSeconds { get; set; }

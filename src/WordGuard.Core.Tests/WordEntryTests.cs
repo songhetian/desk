@@ -6,10 +6,10 @@ namespace WordGuard.Core.Tests;
 public class WordEntryTests
 {
     [Fact]
-    public void Default_match_mode_is_contains()
+    public void Default_match_mode_is_fuzzy_contains()
     {
         var e = new WordEntry { Text = "退货" };
-        Assert.Equal(MatchMode.Contains, e.MatchMode);
+        Assert.Equal(MatchMode.FuzzyContains, e.MatchMode);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class WordEntryTests
         var lib = WordLibrary.Load(json);
 
         var e = Assert.Single(lib.Words);
-        Assert.Equal(MatchMode.Contains, e.MatchMode);
+        Assert.Equal(MatchMode.FuzzyContains, e.MatchMode);
         Assert.NotEqual(Guid.Empty, e.Id);
     }
 }

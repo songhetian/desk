@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Automation;
@@ -19,6 +20,14 @@ namespace WordGuard.Client.App;
 /// </summary>
 public sealed class UiaWindowProbe : IWindowProbe
 {
+    /// <summary>
+    /// 目标白名单提供者：返回当前监控目标 EXE 名集合（大小写不敏感）。
+    /// 非 null 时，前台进程名不在白名单内则<b>直接跳过</b>（不做昂贵的 UIA 全树遍历）。
+    /// 这是"监控运行中 UI 线程被 UIA 卡死、点击无响应"的根治关键——旧实现对任意前台窗口
+    /// （浏览器/资源管理器/悬浮球自身等）都做 TextPattern/FindFirst 遍历，一次可达数秒。
+    /// </summary>
+    public Func<IReadOnlyCollection<string>>? TargetExesProvider { get; set; }
+
     public WindowSnapshot? Probe()
     {
         IntPtr hwnd;
@@ -35,6 +44,11 @@ public sealed class UiaWindowProbe : IWindowProbe
         catch { return null; }
 
         var exeName = (proc.ProcessName ?? "") + ".exe";
+
+        // 快速预过滤：非监控目标窗口直接跳过（Provider 每次调用取最新目标，兼容热重载）
+        if (TargetExesProvider is not null && !MonitorTargetPolicy.IsMonitored(exeName, TargetExesProvider()))
+            return null;
+
         var exePath = proc.MainModule?.FileName ?? "";
 
         AutomationElement? window;
@@ -43,9 +57,10 @@ public sealed class UiaWindowProbe : IWindowProbe
 
         var title = Safe(() => window.Current.Name) ?? "";
 
-        // 优先：前台窗口内拥有键盘焦点的控件（正在输入的框）
-        var focus = FocusedWithin(window);
-        var target = focus ?? FirstEditable(window);
+        // 只读取拥有键盘焦点的控件（用户正在输入的框）
+        // 不做"遍历窗口找第一个可编辑控件"的 fallback——
+        // 否则会误读聊天记录、搜索框、侧边栏等非输入文本，造成假阳性。
+        var target = FocusedWithin(window);
         if (target is null) return null;
 
         var text = ReadText(target);
@@ -122,13 +137,10 @@ public sealed class UiaWindowProbe : IWindowProbe
         }
         catch { }
 
-        // 3. Name 兜底
-        try
-        {
-            var name = el.Current.Name;
-            if (!string.IsNullOrEmpty(name)) return name;
-        }
-        catch { }
+        // 注意：去掉了 Name 兜底——
+        // 微信/QQ 等软件里很多非输入控件（列表项、按钮、标签）的 Name 属性就是显示文字，
+        // 如果用 Name 兜底会误读聊天记录、侧边栏等非输入内容，造成假阳性。
+        // 没有 TextPattern/ValuePattern 的控件就不是输入框，直接返回 null。
 
         return null;
     }

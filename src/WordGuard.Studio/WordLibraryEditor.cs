@@ -43,6 +43,14 @@ public sealed class WordLibraryEditor
     /// <summary>按 Id 删除词条；不存在返回 false。</summary>
     public bool Remove(Guid id) => _library.Words.RemoveAll(w => w.Id == id) > 0;
 
+    /// <summary>按 Id 批量删除词条；忽略不存在的 Id，返回实际删除条数。</summary>
+    public int BulkRemove(IEnumerable<Guid> ids)
+    {
+        var set = new HashSet<Guid>(ids);
+        if (set.Count == 0) return 0;
+        return _library.Words.RemoveAll(w => set.Contains(w.Id));
+    }
+
     /// <summary>按 Id 替换整条词条（保留原 Id）；不存在返回 false。</summary>
     public bool Update(Guid id, WordEntry newEntry)
     {
@@ -61,6 +69,24 @@ public sealed class WordLibraryEditor
         return true;
     }
 
+    /// <summary>按 Id 批量设置启用/停用；忽略不存在的 Id，返回实际发生变化（原态不同）的条数。</summary>
+    public int BulkSetEnabled(IEnumerable<Guid> ids, bool enabled)
+    {
+        var set = new HashSet<Guid>(ids);
+        if (set.Count == 0) return 0;
+        var changed = 0;
+        for (var i = 0; i < _library.Words.Count; i++)
+        {
+            var w = _library.Words[i];
+            if (set.Contains(w.Id) && w.Enabled != enabled)
+            {
+                _library.Words[i] = w with { Enabled = enabled };
+                changed++;
+            }
+        }
+        return changed;
+    }
+
     /// <summary>按 Id 修改分类；不存在返回 false。</summary>
     public bool SetCategory(Guid id, string category)
     {
@@ -70,22 +96,46 @@ public sealed class WordLibraryEditor
         return true;
     }
 
-    /// <summary>所有分类及其词条数量（按名称升序），空分类名记为"未分类"。</summary>
+    /// <summary>
+    /// 所有分类及其词条数量（按名称升序）。独立分类与词条派生分类合并，
+    /// 空分类名记为"未分类"；独立维护的分类即使无词条也显示。
+    /// </summary>
     public IReadOnlyList<(string Name, int Count)> GetCategories()
     {
-        return _library.Words
+        var counts = _library.Words
             .GroupBy(w => w.Category is { Length: > 0 } ? w.Category : "未分类")
-            .Select(g => (g.Key, g.Count()))
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+
+        foreach (var c in _library.Categories)
+        {
+            var name = string.IsNullOrWhiteSpace(c.Name) ? "未分类" : c.Name.Trim();
+            if (!counts.ContainsKey(name)) counts[name] = 0;
+        }
+
+        return counts
+            .Select(kv => (kv.Key, kv.Value))
             .OrderBy(x => x.Key == "未分类" ? "鿿" : x.Key, StringComparer.Ordinal)
             .ToList();
     }
 
-    /// <summary>重命名分类（作用于所有该分类词条）。新名为空或与旧名相同则忽略。返回受影响条数。</summary>
+    /// <summary>添加一个独立分类。空名、重复名返回 false。</summary>
+    public bool AddCategory(string name)
+    {
+        name = (name ?? "").Trim();
+        if (name.Length == 0) return false;
+        if (_library.Categories.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
+            return false;
+        _library.Categories.Add(new CategorySpec { Name = name });
+        return true;
+    }
+
+    /// <summary>重命名分类：同时更新独立分类列表与所有该分类词条。新名为空或与旧名相同则忽略。返回受影响条数。</summary>
     public int RenameCategory(string oldName, string newName)
     {
         newName = (newName ?? "").Trim();
         oldName = oldName ?? "";
         if (newName.Length == 0 || oldName == newName) return 0;
+
         var n = 0;
         for (var i = 0; i < _library.Words.Count; i++)
         {
@@ -96,15 +146,22 @@ public sealed class WordLibraryEditor
                 n++;
             }
         }
+
+        var cat = _library.Categories.FirstOrDefault(c => string.Equals(c.Name, oldName, StringComparison.OrdinalIgnoreCase));
+        if (cat is not null) cat.Name = newName;
         return n;
     }
 
-    /// <summary>删除分类：把该分类词条改挂到 <paramref name="reassignTo"/>（空=归入"未分类"）。返回受影响条数。</summary>
+    /// <summary>
+    /// 删除分类：把该分类词条改挂到 <paramref name="reassignTo"/>（空=归入"未分类"），
+    /// 并从独立分类列表移除。返回迁移词条数。
+    /// </summary>
     public int DeleteCategory(string name, string? reassignTo)
     {
         name = name ?? "";
         reassignTo = string.IsNullOrWhiteSpace(reassignTo) ? "" : reassignTo.Trim();
         if (name == reassignTo) return 0;
+
         var n = 0;
         for (var i = 0; i < _library.Words.Count; i++)
         {
@@ -115,6 +172,8 @@ public sealed class WordLibraryEditor
                 n++;
             }
         }
+
+        _library.Categories.RemoveAll(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
         return n;
     }
 

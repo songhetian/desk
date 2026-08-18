@@ -3,539 +3,442 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WordGuard · 违禁词管理控制台</title>
+<title>雷犀 · 词库管理端</title>
 <style>
   :root{
-    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
-    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
-    --bg:#F1F5F9; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
-    --hi:#DC2626; --hi-l:#FEF2F2; --mid:#D97706; --mid-l:#FFFBEB;
-    --lo:#2563EB; --lo-l:#EFF4FF; --ok:#059669; --ok-l:#ECFDF5;
-    --shadow:0 1px 2px rgba(15,23,42,.06),0 4px 12px rgba(15,23,42,.05);
-    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --bg:#EEF2F7; --bg-2:#E7EDF5;
+    --surface:#FBFCFE; --surface-2:#F3F7FC; --surface-3:#EAF1FA;
+    --border:#D7E0EC; --border-strong:#C2CEDE;
+    --text:#16222E; --text-sub:#516275; --text-mute:#8593A4;
+    --blue:#2563EB; --blue-d:#1D4ED8; --blue-l:#E8F0FE; --blue-ll:#F2F7FF;
+    --ok:#15803D; --ok-l:#E6F4EA; --ok-b:#B7E0C2;
+    --warn:#B45309; --warn-l:#FBEFE0; --warn-b:#F0D3A8;
+    --danger:#DC2626; --danger-l:#FCE8E8; --danger-b:#F3B7B7;
+    --shadow:0 1px 2px rgba(20,40,70,.06), 0 4px 16px rgba(20,40,70,.08);
+    --shadow-lg:0 8px 40px rgba(20,40,70,.22);
+    --mono:"Cascadia Code","Cascadia Mono","SFMono-Regular",Menlo,"Consolas",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif;
+    --r:6px; --r-sm:4px;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
-  body{font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;
-    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased}
-  .app{height:100vh;display:flex;flex-direction:column}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);
+    font-size:14px;line-height:1.62;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;display:flex;flex-direction:column;overflow:hidden}
 
-  /* 顶栏 */
-  .topbar{height:52px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;
-    padding:0 16px;gap:12px;flex:none}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
-  .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(160deg,var(--blue),var(--blue-d));
-    display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
-  .brand small{font-weight:400;color:var(--mut);font-size:12px;margin-left:2px}
-  .spacer{flex:1}
-  .env{font-size:12px;color:var(--sub);background:var(--blue-l);border:1px solid #DBEAFE;
-    padding:4px 10px;border-radius:6px;display:flex;align-items:center;gap:6px;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .env .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0}
-  .btn{border:none;background:var(--blue);color:#fff;padding:9px 15px;border-radius:8px;font-size:13.5px;font-weight:600;
-    cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 1px 2px rgba(37,99,235,.3);transition:.15s}
-  .btn:hover{background:var(--blue-d)}
-  .btn.sec{background:#fff;color:var(--sub);border:1px solid var(--line-d);box-shadow:none;font-weight:500}
-  .btn.sec:hover{border-color:var(--blue);color:var(--blue)}
-  .btn.danger{background:var(--hi);box-shadow:none}
-  .btn.danger:hover{background:#B91C1C}
+  .appbar{flex:none;display:flex;align-items:center;gap:12px;
+    height:52px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:.01em}
+  .shield{width:30px;height:30px;border-radius:7px;background:var(--blue);color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:13px;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .brand small{font-weight:500;color:var(--text-mute);font-size:11.5px;letter-spacing:.04em}
+  .appbar .spacer{flex:1}
+  .winctl{display:flex;gap:6px}
+  .winctl i{width:12px;height:12px;border-radius:50%;background:var(--border-strong);display:block}
 
-  /* 左侧导航 + 主区 */
-  .shell{flex:1;display:flex;min-height:0}
-  .nav{width:212px;background:#fff;border-right:1px solid var(--line);padding:14px 10px;flex-shrink:0;overflow:auto}
-  .nav .grp{font-size:11px;letter-spacing:.06em;color:var(--mut);text-transform:uppercase;padding:14px 10px 6px;font-weight:600}
-  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--sub);
-    text-decoration:none;font-size:13.5px;cursor:pointer;margin-bottom:2px}
-  .nav a:hover{background:var(--bg);color:var(--ink)}
-  .nav a.active{background:var(--blue-l);color:var(--blue-d);font-weight:600}
-  .nav a .ic{width:18px;height:18px;flex-shrink:0;opacity:.85}
-  .nav a .badge{margin-left:auto;background:var(--line);color:var(--sub);font-size:11px;border-radius:10px;padding:1px 7px;min-width:22px;text-align:center}
-  .nav a.active .badge{background:var(--blue);color:#fff}
+  .btn{appearance:none;border:1px solid var(--border-strong);background:var(--surface);
+    color:var(--text);padding:8px 14px;border-radius:var(--r-sm);font-size:13px;font-weight:500;
+    cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:7px;min-height:36px}
+  .btn:hover{background:var(--surface-2);border-color:#AEBECE}
+  .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .btn.primary{background:var(--blue);border-color:var(--blue-d);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.3)}
+  .btn.primary:hover{background:var(--blue-d)}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--blue)}
+  .btn.ghost:hover{background:var(--blue-l)}
+  .btn.danger{color:var(--danger);border-color:var(--danger-b)}
+  .btn.danger:hover{background:var(--danger-l)}
+  .btn.danger-solid{background:#B91C1C;border-color:#991B1B;color:#fff}
+  .btn.danger-solid:hover{background:#991B1B}
+  .btn.sm{padding:5px 10px;font-size:12px;min-height:30px}
+  .ico{width:15px;height:15px;flex:none}
 
-  .main{flex:1;overflow:auto;padding:22px 26px}
-  .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;gap:16px}
-  .page-head h1{font-size:20px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
-  .page-head p{margin:0;color:var(--sub);font-size:13px}
-  .hide{display:none!important}
+  input,select,textarea{font-family:var(--sans);font-size:13px;color:var(--text);
+    background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);
+    padding:8px 11px;outline:none;width:100%}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
+  label.fld{display:block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-sub);margin-bottom:6px}
 
-  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
-  .search{flex:1;min-width:220px;position:relative}
-  .search input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--line-d);border-radius:8px;font-size:13.5px;background:#fff;color:var(--ink)}
-  .search input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--mut)}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;
+    font-weight:500;padding:2px 8px;border-radius:20px;border:1px solid transparent;letter-spacing:.01em}
+  .badge.high{color:var(--danger);background:var(--danger-l);border-color:var(--danger-b)}
+  .badge.medium{color:var(--warn);background:var(--warn-l);border-color:var(--warn-b)}
+  .badge.low{color:var(--blue);background:var(--blue-l);border-color:#BFD2FB}
+  .pill{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;background:var(--surface-3);
+    color:var(--text-sub);border:1px solid var(--border)}
 
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
-  table{width:100%;border-collapse:collapse}
-  thead th{text-align:left;font-size:12px;color:var(--mut);font-weight:600;padding:11px 16px;border-bottom:1px solid var(--line);background:#F8FAFC;letter-spacing:.02em}
-  tbody td{padding:12px 16px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr:hover{background:#FAFBFC}
-  .word{font-weight:600;font-family:"Segoe UI",Consolas,monospace}
-  .cat-tag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub)}
-  .cat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-  .sev{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:6px}
-  .sev.hi{background:var(--hi-l);color:var(--hi)}
-  .sev.mid{background:var(--mid-l);color:var(--mid)}
-  .sev.lo{background:var(--lo-l);color:var(--lo)}
-  .switch{position:relative;width:38px;height:22px;display:inline-block}
-  .switch input{opacity:0;width:0;height:0}
-  .slider{position:absolute;inset:0;background:var(--line-d);border-radius:20px;transition:.2s;cursor:pointer}
-  .slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-  .switch input:checked + .slider{background:var(--blue)}
-  .switch input:checked + .slider:before{transform:translateX(16px)}
-  .row-act{display:flex;gap:6px}
-  .icon-btn{width:30px;height:30px;border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;display:grid;place-items:center;color:var(--sub);transition:.12s}
-  .icon-btn:hover{border-color:var(--blue);color:var(--blue)}
-  .icon-btn.danger:hover{border-color:var(--hi);color:var(--hi)}
-  .empty-row td{padding:36px;text-align:center;color:var(--mut);font-size:13px}
+  .studio-body{flex:1;display:grid;grid-template-columns:228px 1fr;min-height:0}
+  .cat-rail{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+  .rail-head{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 10px}
+  .rail-head .ttl{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-sub)}
+  .cat-list{flex:1;overflow:auto;padding:4px 8px 12px}
+  .cat-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:9px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--text-sub);font-size:13px;font-weight:500}
+  .cat-item:hover{background:var(--surface-2)}
+  .cat-item.on{background:var(--blue-l);color:var(--blue-d);font-weight:600;box-shadow:inset 3px 0 0 var(--blue)}
+  .cat-item .cnt{font-family:var(--mono);font-size:11px;color:var(--text-mute)}
+  .cat-item.on .cnt{color:var(--blue)}
 
-  /* 分类卡片 */
-  .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-  .cat-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px;box-shadow:var(--shadow)}
-  .cat-card .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-  .cat-card .big-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
-  .cat-card h3{margin:0;font-size:15px;word-break:break-all}
-  .cat-card .cnt{margin-left:auto;font-size:12px;color:var(--mut);background:var(--bg);padding:3px 9px;border-radius:8px;white-space:nowrap}
-  .cat-card .desc{color:var(--sub);font-size:12.5px;margin:0 0 12px;min-height:18px}
-  .cat-card .acts{display:flex;gap:8px}
-  .cat-card .acts .btn.sec{flex:1;justify-content:center;padding:7px}
-  .add-cat{border:2px dashed var(--line-d);border-radius:12px;background:#FBFCFE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-    color:var(--sub);cursor:pointer;min-height:132px;font-size:14px;transition:.12s}
-  .add-cat:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+  .word-main{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+  .toolbar{flex:none;display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--surface);
+    border-bottom:1px solid var(--border)}
+  .search{flex:1;max-width:340px;position:relative}
+  .search input{padding-left:32px}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-mute)}
+  .toolbar .spacer{flex:1}
 
-  /* 配置页 */
-  .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .cfg-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
-  .cfg-card h3{margin:0 0 4px;font-size:15px}
-  .cfg-card .hint{color:var(--mut);font-size:12.5px;margin:0 0 14px}
-  .field{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);gap:12px}
-  .field:last-child{border-bottom:none}
-  .field .lbl{font-size:13.5px}
-  .field .lbl small{display:block;color:var(--mut);font-size:12px}
-  .cfg-card label{display:block;font-size:12.5px;color:var(--sub);margin:0 0 6px;font-weight:600}
-  .cfg-card textarea,.cfg-card input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line-d);border-radius:8px;
-    font-size:13px;font-family:var(--mono);color:var(--ink);resize:vertical;background:#fff}
-  .cfg-card textarea:focus,.cfg-card input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-  .switches{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 4px}
-  .swlabel{display:flex;align-items:center;gap:8px;margin:0;font-weight:500;color:var(--ink);cursor:pointer}
+  .tbl-wrap{flex:1;overflow:auto;padding:0 18px 18px;display:flex;flex-direction:column;min-height:220px}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:14px;flex:1}
+  tr.empty{height:100%}
+  tr.empty td{padding:0;height:100%}
+  .empty-cell{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-mute);font-size:13.5px;padding:28px;text-align:center}
+  thead th{position:sticky;top:0;background:var(--surface-2);text-align:left;
+    font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-sub);
+    padding:11px 14px;border-bottom:1px solid var(--border)}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--bg-2);font-size:13px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--surface-2)}
+  td.word{font-family:var(--mono);font-weight:600;color:var(--text)}
+  td.op{white-space:nowrap;width:1%}
+  td.op .btn{padding:4px 9px;min-height:28px}
+  .toggle{width:38px;height:22px;border-radius:20px;background:var(--border-strong);position:relative;cursor:pointer;transition:.15s}
+  .toggle.on{background:var(--ok)}
+  .toggle::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+  .toggle.on::after{left:18px}
+  .tbl-foot{flex:none;padding:10px 18px;color:var(--text-mute);font-family:var(--mono);font-size:12px;background:var(--surface);border-top:1px solid var(--border)}
 
-  /* 空状态/说明 */
-  .help-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:28px;box-shadow:var(--shadow);text-align:center}
-  .help-card .big-ic{width:52px;height:52px;border-radius:14px;background:var(--blue-l);color:var(--blue);
-    display:grid;place-items:center;margin:0 auto 14px}
-  .help-card h3{margin:0 0 6px;font-size:16px}
-  .help-card p{color:var(--sub);font-size:13px;margin:0 auto 18px;max-width:520px;line-height:1.7}
-  .footer-note{margin-top:18px;color:var(--mut);font-size:12px;line-height:1.7}
+  .cbx{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border-strong);display:inline-grid;place-items:center;
+    cursor:pointer;flex:none;color:#fff;font-size:12px;font-weight:700;line-height:1;background:var(--surface);transition:.12s}
+  .cbx::after{content:"";display:none}
+  .cbx.on::after{content:"✓";display:block}
+  .cbx.mix{background:var(--surface);border-color:var(--blue-d)}
+  .cbx.mix::after{content:"";display:block;width:9px;height:2px;background:var(--blue-d);border-radius:2px}
+  .cbx:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 
-  /* 模态 */
-  .mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:100}
-  .mask.show{display:flex}
-  .modal{background:#fff;border-radius:14px;width:460px;max-width:92vw;max-height:86vh;overflow:auto;
-    box-shadow:0 20px 60px rgba(15,23,42,.3);animation:pop .16s ease}
-  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
-  @media (prefers-reduced-motion: reduce){.modal{animation:none}}
-  .modal header{padding:18px 20px 0}
-  .modal header h2{margin:0;font-size:17px}
-  .modal header p{margin:5px 0 0;color:var(--sub);font-size:13px}
-  .modal .body{padding:18px 20px}
-  .modal .body label{display:block;font-size:12.5px;color:var(--sub);margin:0 0 6px;font-weight:600}
-  .modal .body input,.modal .body select,.modal .body textarea{width:100%;padding:9px 11px;border:1px solid var(--line-d);
-    border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:#fff}
-  .modal .body input:focus,.modal .body select:focus,.modal .body textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-  .modal .body .seg{display:flex;gap:8px;margin-top:4px}
-  .modal .body .seg button{flex:1;padding:8px;border:1px solid var(--line-d);background:#fff;border-radius:8px;cursor:pointer;font-size:13px;color:var(--sub);transition:.12s}
-  .modal .body .seg button.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue-d);font-weight:600}
-  .modal .body .row{display:flex;gap:10px}
-  .modal .body .row>div{flex:1}
-  .modal .body .newcat{margin-top:10px;display:none}
-  .modal .body .newcat.show{display:block}
-  .modal .body .ck{display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer}
-  .modal footer{padding:14px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--line);background:#F8FAFC}
+  .bulkbar{flex:none;display:none;align-items:center;gap:12px;padding:10px 18px;background:var(--blue-l);border-bottom:1px solid var(--border)}
+  .bulkbar.on{display:flex}
+  .bulkbar .selinfo{font-size:13px;font-weight:600;color:var(--blue-d)}
+  .bulkbar .spacer{flex:1}
 
-  /* 确认模态 */
-  .confirm{width:360px}
-  .confirm .body{display:flex;gap:13px;align-items:flex-start}
-  .confirm .c-ic{width:40px;height:40px;border-radius:12px;background:var(--hi-l);color:var(--hi);display:grid;place-items:center;flex-shrink:0}
-  .confirm .c-ttl{font-size:15px;font-weight:600}
-  .confirm .c-msg{color:var(--sub);font-size:13px;margin-top:3px;line-height:1.6}
+  .x{border:0;background:transparent;color:var(--text-mute);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px}
+  .x:hover{background:var(--surface-2);color:var(--text)}
 
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);
-    color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;opacity:0;transition:.25s;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .toast.err{background:var(--hi)}
+  .modal{position:fixed;inset:0;display:none;place-items:center;z-index:50;background:rgba(15,27,42,.32)}
+  .modal.on{display:grid}
+  .modal .box{width:min(460px,92vw);background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow-lg);
+    border:1px solid var(--border);display:flex;flex-direction:column;max-height:86vh}
+  .modal .box header{padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-weight:600}
+  .modal .body{padding:18px;display:flex;flex-direction:column;gap:16px}
+  .modal .foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);
+    background:#0F1B2A;color:#E7EEF6;padding:11px 18px;border-radius:var(--r);font-size:13px;
+    box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:.2s;z-index:70;font-family:var(--sans);max-width:80vw}
+  .toast.on{opacity:1;transform:translateX(-50%)}
+  .toast.err{background:#B91C1C}
+  .hint{font-size:12px;color:var(--text-mute);margin-top:8px}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="topbar">
-    <div class="brand">
-      <span class="logo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span>
-      <span>WordGuard <small>违禁词管理控制台</small></span>
-    </div>
+
+<section class="app" id="app">
+  <div class="appbar">
+    <div class="brand"><span class="shield">雷</span> 雷犀 <small>词库管理端</small></div>
     <div class="spacer"></div>
-    <div class="env" id="envPill"><span class="dot"></span><span id="envText">词库加载中…</span></div>
-    <button class="btn sec" onclick="doExport()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>导出词库</button>
+    <button class="btn primary" id="exportBtn">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      导出词库
+    </button>
+    <div class="winctl"><i></i><i></i><i></i></div>
   </div>
 
-  <div class="shell">
-    <nav class="nav">
-      <div class="grp">词库</div>
-      <a class="active" data-page="words">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>违禁词管理<span class="badge" id="navWordBadge">0</span></a>
-      <a data-page="cats">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>分类管理<span class="badge" id="navCatBadge">0</span></a>
-      <div class="grp">下发</div>
-      <a data-page="policy">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>默认策略</a>
-      <a data-page="clients">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>客户端管理</a>
-    </nav>
+  <div class="studio-body">
+    <!-- 分类栏 -->
+    <aside class="cat-rail">
+      <div class="rail-head"><span class="ttl">分类</span>
+        <button class="btn sm ghost" id="addCatBtn">+ 新增</button></div>
+      <div class="cat-list" id="catList"></div>
+    </aside>
 
-    <main class="main">
-      <!-- 违禁词管理 -->
-      <section id="page-words">
-        <div class="page-head">
-          <div><h1>违禁词管理</h1><p>维护被监控软件中禁止出现的高危词汇，支持分级与分类。</p></div>
-          <button class="btn" onclick="openWordModal()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>新增违禁词</button>
+    <!-- 词表 -->
+    <main class="word-main">
+      <div class="toolbar">
+        <div class="search">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="searchInput" placeholder="搜索违禁词…">
         </div>
-        <div class="toolbar">
-          <div class="search">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-            <input id="fSearch" placeholder="搜索词汇或分类…" oninput="renderWords()">
-          </div>
-        </div>
-        <div class="card"><table>
-          <thead><tr><th style="width:34%">词汇</th><th>分类</th><th>级别</th><th>启用</th><th style="width:96px">操作</th></tr></thead>
-          <tbody id="wordRows"></tbody>
-        </table></div>
-        <p class="footer-note">提示：本端维护词库与默认策略（随词库一并下发）；客户端可另行覆盖本机生效值。</p>
-      </section>
+        <select id="sevFilter" style="width:140px">
+          <option value="">全部级别</option>
+          <option value="high">高</option><option value="medium">中</option><option value="low">低</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn primary" id="addWordBtn">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          新增违禁词
+        </button>
+      </div>
 
-      <!-- 分类管理 -->
-      <section id="page-cats" class="hide">
-        <div class="page-head">
-          <div><h1>分类管理</h1><p>对违禁词进行归类，便于批量管理与告警分析。</p></div>
-          <button class="btn" onclick="openCatModal()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>新建分类</button>
-        </div>
-        <div class="cat-grid" id="catGrid"></div>
-        <p class="footer-note">分类由词条动态生成；删除分类时，其下词条可迁移到指定分类（留空则归入「未分类」）。</p>
-      </section>
+      <div class="bulkbar" id="bulkbar">
+        <span class="selinfo" id="selCount">已选 0 项</span>
+        <button class="btn sm" id="bulkEnable">启用选中</button>
+        <button class="btn sm" id="bulkDisable">禁用选中</button>
+        <button class="btn sm danger-solid" id="bulkDelete">删除选中</button>
+        <div class="spacer"></div>
+        <button class="btn sm ghost" id="bulkClear">取消选择</button>
+      </div>
 
-      <!-- 默认策略 -->
-      <section id="page-policy" class="hide">
-        <div class="page-head"><div><h1>默认策略</h1><p>监控目标与告警方式默认值，随词库一并下发；客户端可覆盖本机生效值。</p></div></div>
-        <div class="cfg-grid">
-          <div class="cfg-card">
-            <h3>监控目标软件</h3><p class="hint">每行一个：EXE 名 或 EXE 名 | 路径前缀（留空路径 = 仅按 EXE 名）。</p>
-            <label>目标进程列表</label>
-            <textarea id="fTargets" rows="6" placeholder="WeChat.exe&#10;WXWork.exe | C:\Tencent\WXWork\&#10;QQ.exe"></textarea>
-          </div>
-          <div class="cfg-card">
-            <h3>告警通道</h3><p class="hint">命中违禁词时的默认提醒形式。</p>
-            <label>通道开关</label>
-            <div class="switches">
-              <label class="swlabel"><span class="switch"><input type="checkbox" id="fPopup"><span class="slider"></span></span>弹窗提醒</label>
-              <label class="swlabel"><span class="switch"><input type="checkbox" id="fSound"><span class="slider"></span></span>声音提醒</label>
-              <label class="swlabel"><span class="switch"><input type="checkbox" id="fHighlight"><span class="slider"></span></span>高亮标记</label>
-            </div>
-            <div class="field"><div class="lbl">去重窗口<small>同一词同一会话 N 秒内不重复告警</small></div>
-              <input type="number" id="fCooldown" min="0" max="3600" style="width:120px"></div>
-            <div class="field"><div class="lbl">日志保留<small>客户端本地审计日志保留天数</small></div>
-              <input type="number" id="fRetention" min="1" max="3650" style="width:120px"></div>
-            <div style="margin-top:14px"><button class="btn" onclick="savePolicy()">保存默认策略</button></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 客户端管理 -->
-      <section id="page-clients" class="hide">
-        <div class="page-head">
-          <div><h1>客户端管理</h1><p>将词库与默认策略统一下发到各监控客户端。</p></div>
-          <button class="btn" onclick="doExport()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>导出词库下发</button>
-        </div>
-        <div class="help-card">
-          <div class="big-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/></svg></div>
-          <h3>文件式分发（当前架构）</h3>
-          <p>本版本采用「导出词库文件 → 拷贝到客户端安装目录覆盖 wordlib.json」的下发方式，客户端监控引擎会自动热加载新词库，无需重启。<b>导出词库</b> 会打开另存为对话框，生成带时间戳的 wordlib 文件供分发。</p>
-          <button class="btn" onclick="doExport()">导出词库 JSON</button>
-        </div>
-        <p class="footer-note">说明：管理端不再包含「本机部署」——本机运行时的监控目标 / 告警开关由客户端在「监控状态」面板中配置；管理端只负责词库与默认策略下发。</p>
-      </section>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:40px"><span class="cbx" id="selAll" role="checkbox" aria-checked="false" tabindex="0" title="全选 / 取消全选"></span></th>
+            <th style="width:31%">词语</th><th>分类</th><th>严重级别</th><th>状态</th><th style="text-align:right">操作</th>
+          </tr></thead>
+          <tbody id="wordBody"></tbody>
+        </table>
+      </div>
+      <div class="tbl-foot" id="wordFoot">共 0 条</div>
     </main>
   </div>
-</div>
+</section>
 
-<!-- 新增/编辑违禁词 -->
-<div class="mask" id="wordMask">
-  <div class="modal">
-    <header><h2 id="wordTitle">新增违禁词</h2><p>添加到词库并随默认策略一并下发。</p></header>
+<!-- 弹窗：新增/编辑违禁词（居中） -->
+<div class="modal" id="wordModal">
+  <div class="box">
+    <header><span id="modalTitle">新增违禁词</span><button class="x" id="modalClose">×</button></header>
     <div class="body">
-      <label>词汇文本</label><input id="wText" placeholder="例如：绝对保过、内部价" maxlength="64">
-      <div class="row" style="margin-top:14px">
-        <div><label>所属分类</label><select id="wCat"></select></div>
-        <div><label>严重级别</label>
-          <div class="seg" id="wSev"><button data-v="hi" onclick="sevPick(this)">高</button><button data-v="mid" class="on" onclick="sevPick(this)">中</button><button data-v="lo" onclick="sevPick(this)">低</button></div>
-        </div>
+      <div><label class="fld">词语</label><input id="fWord" placeholder="如：示例违禁词"></div>
+      <div><label class="fld">分类</label><select id="fCat"></select></div>
+      <div><label class="fld">严重级别</label>
+        <select id="fSev"><option value="high">高 · 必须拦截</option><option value="medium">中 · 重点提示</option><option value="low">低 · 记录</option></select>
       </div>
-      <div class="newcat" id="wNewCat"><label>新分类名称</label><input id="wNewCatName" placeholder="输入后回车确认"></div>
-      <label class="ck"><input type="checkbox" id="wEnabled" checked style="width:16px;height:16px">启用该词</label>
+      <div style="display:flex;align-items:center;gap:10px"><label class="fld" style="margin:0">启用该词</label>
+        <div class="toggle" id="fEnabled" role="checkbox" aria-checked="true" tabindex="0"></div></div>
     </div>
-    <footer><button class="btn sec" onclick="closeMask('wordMask')">取消</button><button class="btn" onclick="saveWord()">保存</button></footer>
+    <div class="foot"><button class="btn" id="modalCancel">取消</button><button class="btn primary" id="modalSave">保存</button></div>
   </div>
 </div>
 
-<!-- 新建/重命名分类 -->
-<div class="mask" id="catMask">
-  <div class="modal">
-    <header><h2 id="catTitle">新建分类</h2><p>分类用于组织违禁词，随词条一并保存在词库中。</p></header>
-    <div class="body">
-      <label>分类名称</label><input id="cName" placeholder="例如：虚假承诺" maxlength="32">
-    </div>
-    <footer><button class="btn sec" onclick="closeMask('catMask')">取消</button><button class="btn" onclick="saveCat()">保存</button></footer>
-  </div>
-</div>
-
-<!-- 确认模态（删除等危险操作） -->
-<div class="mask" id="confirmMask">
-  <div class="modal confirm">
-    <div class="body">
-      <div class="c-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
-      <div>
-        <div class="c-ttl" id="cTtl">确认操作</div>
-        <div class="c-msg" id="cMsg">此操作不可撤销。</div>
-      </div>
-    </div>
-    <footer><button class="btn sec" onclick="closeMask('confirmMask')">取消</button><button class="btn danger" id="cOk" onclick="confirmOk()">确认删除</button></footer>
+<!-- 删除确认弹窗（单选/批量共用） -->
+<div class="modal" id="delModal">
+  <div class="box" style="width:min(420px,92vw)">
+    <header><span>确认删除</span><button class="x" id="delClose">×</button></header>
+    <div class="body"><p id="delMsg" style="font-size:13.5px;color:var(--text-sub);line-height:1.7"></p></div>
+    <div class="foot"><button class="btn" id="delCancel">取消</button><button class="btn danger-solid" id="delConfirm">删除</button></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ---------- 状态 ----------
-let words = [];
-let categories = [];
-let deploy = { targets: [], alertPopup: true, alertSound: true, alertHighlight: true, soundFilePath: "", cooldownSeconds: 30, logRetentionDays: 30 };
-let libPath = "";
-let editingId = null;        // 编辑中的词条 id（null=新增）
-let editingCat = null;       // 编辑中的分类名（null=新建）
-let sevVal = 'mid';
-let confirmCb = null;        // 确认模态回调
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const SEVTXT = { high:"高", medium:"中", low:"低" };
 
-const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const sevName = s => s === 'high' ? '高' : s === 'medium' ? '中' : '低';
+  let words = [];            // 来自后端 init/updated：[{id,text,category,severity,enabled}]
+  let categories = [];       // [{name,count}]
+  let curCat = "全部";
+  let selWords = new Set();  // 选中的词条 id（GUID 字符串）
+  let curIds = [];           // 当前筛选结果中的 id
+  let editingId = null;      // 编辑中的词条 id；null=新增
 
-// 分类配色（数据点用，避开紫色系，保持蓝调企业风）
-const CAT_COLORS = ['#DC2626','#D97706','#2563EB','#0891B2','#059669','#DB2777','#6366F1','#475569'];
-function catColor(name){
-  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return CAT_COLORS[h % CAT_COLORS.length];
-}
+  function post(type, payload){ window.chrome.webview.postMessage(Object.assign({type}, payload||{})); }
+  function toast(t, err){ const e=$("#toast"); e.textContent=t; e.className="toast on"+(err?" err":""); clearTimeout(e._t); e._t=setTimeout(()=>e.className="toast",2600); }
 
-// ---------- 消息桥 ----------
-function send(type, payload) {
-  window.chrome.webview.postMessage(JSON.stringify({ type, ...(payload || {}) }));
-}
-window.chrome.webview.addEventListener('message', e => {
-  const m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-  if (m.type === 'init') applyInit(m);
-  else if (m.type === 'updated') { words = m.words || []; categories = m.categories || []; deploy = m.deploy || deploy; renderAll(); }
-  else if (m.type === 'toast') toast(m.text, !m.ok);
-});
-
-function applyInit(m) {
-  words = m.words || []; categories = m.categories || []; deploy = m.deploy || deploy; libPath = m.libPath || '';
-  document.getElementById('envText').textContent = libPath ? '词库：' + libPath : '词库未加载';
-  renderAll();
-}
-
-function toast(text, isErr) {
-  const t = document.getElementById('toast');
-  t.textContent = text;
-  t.className = 'toast show' + (isErr ? ' err' : '');
-  clearTimeout(window.__toastT);
-  window.__toastT = setTimeout(() => t.className = 'toast', 2600);
-}
-
-// ---------- 导航 ----------
-document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', () => {
-  document.querySelectorAll('.nav a').forEach(x => x.classList.remove('active'));
-  a.classList.add('active');
-  document.querySelectorAll('main section').forEach(s => s.classList.add('hide'));
-  document.getElementById('page-' + a.dataset.page).classList.remove('hide');
-}));
-
-// ---------- 渲染 ----------
-function renderAll() {
-  document.getElementById('navWordBadge').textContent = words.length;
-  document.getElementById('navCatBadge').textContent = categories.length;
-  renderWords();
-  renderCats();
-  fillCatSelect(document.getElementById('wCat').value);
-  fillPolicy();
-}
-
-function renderWords() {
-  const kw = document.getElementById('fSearch').value.trim().toLowerCase();
-  const filtered = words.filter(w => !kw || w.text.toLowerCase().includes(kw) || (w.category || '').toLowerCase().includes(kw));
-  const tb = document.getElementById('wordRows');
-  tb.innerHTML = filtered.length ? filtered.map(w => `
-    <tr>
-      <td class="word">${esc(w.text)}</td>
-      <td><span class="cat-tag"><span class="cat-dot" style="background:${catColor(w.category || '未分类')}"></span>${esc(w.category || '未分类')}</span></td>
-      <td><span class="sev ${w.severity==='high'?'hi':w.severity==='medium'?'mid':'lo'}">${sevName(w.severity)}</span></td>
-      <td><label class="switch"><input type="checkbox" ${w.enabled?'checked':''} onchange="toggleWord('${w.id}',this.checked)"><span class="slider"></span></label></td>
-      <td><div class="row-act">
-        <button class="icon-btn" title="编辑" onclick="openWordModal('${w.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
-        <button class="icon-btn danger" title="删除" onclick="askDeleteWord('${w.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
-      </div></td>
-    </tr>`).join('') : '<tr class="empty-row"><td colspan="5">无匹配词条</td></tr>';
-}
-
-function renderCats() {
-  const g = document.getElementById('catGrid');
-  g.innerHTML = categories.map((c, i) => `
-    <div class="cat-card">
-      <div class="top"><span class="big-dot" style="background:${catColor(c.name)}"></span><h3>${esc(c.name)}</h3><span class="cnt">${c.count} 词</span></div>
-      <div class="desc">分类下词条将随词库一并下发。</div>
-      <div class="acts">
-        <button class="btn sec" onclick="openCatModalByIndex(${i})">重命名</button>
-        <button class="btn sec" style="color:var(--hi);border-color:#FCA5A5" onclick="askDeleteCatByIndex(${i})">删除</button>
-      </div>
-    </div>`).join('') + `
-    <div class="add-cat" onclick="openCatModal()">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>新建分类
-    </div>`;
-}
-
-function fillPolicy() {
-  document.getElementById('fTargets').value = (deploy.targets || []).map(t => t.exePath ? `${t.exeName} | ${t.exePath}` : t.exeName).join('\n');
-  document.getElementById('fPopup').checked = !!deploy.alertPopup;
-  document.getElementById('fSound').checked = !!deploy.alertSound;
-  document.getElementById('fHighlight').checked = !!deploy.alertHighlight;
-  document.getElementById('fCooldown').value = deploy.cooldownSeconds ?? 30;
-  document.getElementById('fRetention').value = deploy.logRetentionDays ?? 30;
-}
-
-// ---------- 违禁词 ----------
-function toggleWord(id, on) { send('toggleWord', { id, enabled: on }); }
-
-function openWordModal(id) {
-  editingId = id || null;
-  document.getElementById('wordTitle').textContent = id ? '编辑违禁词' : '新增违禁词';
-  const w = id ? words.find(x => x.id === id) : null;
-  document.getElementById('wText').value = w ? w.text : '';
-  fillCatSelect(w ? (w.category || '') : '');
-  document.getElementById('wNewCat').classList.remove('show');
-  document.getElementById('wNewCatName').value = '';
-  setSev(w ? w.severity : 'mid');
-  document.getElementById('wEnabled').checked = w ? !!w.enabled : true;
-  document.getElementById('wordMask').classList.add('show');
-  setTimeout(() => document.getElementById('wText').focus(), 30);
-}
-
-function fillCatSelect(current) {
-  const sel = document.getElementById('wCat');
-  const opts = ['<option value="__new__">＋ 新建分类…</option>']
-    .concat(categories.map(c => `<option value="${esc(c.name)}" ${c.name===current?'selected':''}>${esc(c.name)}</option>`));
-  if (!categories.some(c => c.name === current) && current) opts.push(`<option value="${esc(current)}" selected>${esc(current)}</option>`);
-  sel.innerHTML = opts.join('');
-  sel.onchange = () => document.getElementById('wNewCat').classList.toggle('show', sel.value === '__new__');
-  document.getElementById('wNewCat').classList.toggle('show', sel.value === '__new__');
-}
-
-function setSev(v) { sevVal = v; document.querySelectorAll('#wSev button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
-function sevPick(b) { setSev(b.dataset.v); }
-
-function saveWord() {
-  const text = document.getElementById('wText').value.trim();
-  if (!text) { toast('违禁词文本不能为空', true); return; }
-  let category = document.getElementById('wCat').value;
-  if (category === '__new__') {
-    category = document.getElementById('wNewCatName').value.trim();
-    if (!category) { toast('请输入新分类名称', true); document.getElementById('wNewCatName').focus(); return; }
-  }
-  send('saveWord', {
-    id: editingId, text, category,
-    severity: sevVal,
-    enabled: document.getElementById('wEnabled').checked,
+  // ---------- 后端消息 ----------
+  window.chrome.webview.addEventListener("message", e => {
+    const m = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+    if (m.type === "init" || m.type === "updated") loadState(m);
+    else if (m.type === "toast") toast(m.text, !m.ok);
   });
-  closeMask('wordMask');
-}
 
-// ---------- 分类 ----------
-function openCatModal(name) {
-  editingCat = name || null;
-  document.getElementById('catTitle').textContent = name ? '重命名分类' : '新建分类';
-  document.getElementById('cName').value = name || '';
-  document.getElementById('catMask').classList.add('show');
-  setTimeout(() => document.getElementById('cName').focus(), 30);
-}
-function saveCat() {
-  const n = document.getElementById('cName').value.trim();
-  if (!n) { toast('请填写分类名称', true); return; }
-  if (editingCat) send('renameCategory', { old: editingCat, new: n });
-  else {
-    // 新建分类：等效于新增一条词时选择该分类；此处直接创建一个空占位词会引入词条，
-    // 故新建分类立即弹出「新增违禁词」模态，分类下拉已预选新分类。
-    closeMask('catMask');
-    openWordModal(null);
-    document.getElementById('wCat').innerHTML = `<option value="${esc(n)}" selected>${esc(n)}</option>`;
-    document.getElementById('wNewCat').classList.remove('show');
+  function loadState(m){
+    words = (m.words || []).map(w => ({ id:String(w.id), text:w.text, category:w.category, severity:w.severity, enabled:!!w.enabled }));
+    categories = (m.categories || []).map(c => ({ name:c.name, count:c.count }));
+    // 保持当前选中分类有效，否则回退“全部”
+    if (curCat !== "全部" && !categories.some(c => c.name === curCat)) curCat = "全部";
+    selWords.clear();
+    renderCats(); renderWords();
   }
-  closeMask('catMask');
-}
 
-// ---------- 删除确认 ----------
-function askConfirm(ttl, msg, label, cb) {
-  document.getElementById('cTtl').textContent = ttl;
-  document.getElementById('cMsg').textContent = msg;
-  document.getElementById('cOk').textContent = label;
-  confirmCb = cb;
-  document.getElementById('confirmMask').classList.add('show');
-}
-function confirmOk() { closeMask('confirmMask'); const cb = confirmCb; confirmCb = null; if (cb) cb(); }
-function askDeleteWord(id) {
-  const w = words.find(x => x.id === id); if (!w) return;
-  askConfirm('删除违禁词？', `「${w.text}」将从词库中删除，客户端热加载后即不再拦截。`, '确认删除', () => send('deleteWord', { id }));
-}
-function openCatModalByIndex(i) { const c = categories[i]; if (c) openCatModal(c.name); }
-function askDeleteCatByIndex(i) {
-  const c = categories[i]; if (!c) return;
-  const others = categories.map(x => x.name).filter(n => n !== c.name);
-  const msg = others.length
-    ? `分类「${c.name}」下 ${c.count} 个词条将迁移到「${others[0]}」。`
-    : `分类「${c.name}」下的词条将归入「未分类」。`;
-  askConfirm('删除分类？', msg, '确认删除', () => send('deleteCategory', { name: c.name, reassignTo: others[0] || '' }));
-}
+  // ---------- 分类 ----------
+  function renderCats(){
+    const el = $("#catList"); el.innerHTML = "";
+    const all = [{ name:"全部", count: words.length }, ...categories];
+    all.forEach(c => {
+      const d = document.createElement("div");
+      d.className = "cat-item" + (c.name === curCat ? " on" : "");
+      d.innerHTML = `<span>${c.name}</span><span class="cnt">${c.count}</span>`;
+      d.onclick = () => { curCat = c.name; $$(".cat-item").forEach(x=>x.classList.remove("on")); d.classList.add("on"); renderWords(); };
+      el.appendChild(d);
+    });
+  }
 
-// ---------- 默认策略 ----------
-function savePolicy() {
-  const targets = document.getElementById('fTargets').value.split('\n').map(l => l.trim()).filter(Boolean)
-    .map(l => { const [exe, p] = l.split('|').map(s => s.trim()); return { exeName: exe, exePath: p || null }; })
-    .filter(t => t.exeName);
-  send('saveDeploy', {
-    targets,
-    alertPopup: document.getElementById('fPopup').checked,
-    alertSound: document.getElementById('fSound').checked,
-    alertHighlight: document.getElementById('fHighlight').checked,
-    cooldownSeconds: parseInt(document.getElementById('fCooldown').value) || 30,
-    logRetentionDays: parseInt(document.getElementById('fRetention').value) || 30,
-  });
-}
+  // ---------- 词表 ----------
+  function renderWords(){
+    const q = $("#searchInput").value.trim().toLowerCase();
+    const sf = $("#sevFilter").value;
+    const rows = words.filter(w =>
+      (curCat === "全部" || w.category === curCat) &&
+      (!sf || w.severity === sf) &&
+      (!q || w.text.toLowerCase().includes(q)));
+    curIds = rows.map(w => w.id);
 
-// ---------- 导出 ----------
-function doExport() { send('export'); }
+    const tb = $("#wordBody"); tb.innerHTML = "";
+    if (rows.length === 0){
+      tb.innerHTML = `<tr class="empty"><td colspan="6"><div class="empty-cell">暂无违禁词，点击右上角“新增违禁词”</div></td></tr>`;
+    }
+    rows.forEach(w => {
+      const sel = selWords.has(w.id);
+      const tr = document.createElement("tr");
+      if (sel) tr.style.background = "var(--blue-ll)";
+      tr.innerHTML =
+        `<td><span class="cbx ${sel?'on':''}" data-cb="${w.id}" role="checkbox" aria-checked="${sel}" tabindex="0"></span></td>
+         <td class="word">${escapeHtml(w.text)}</td>
+         <td>${escapeHtml(w.category || "未分类")}</td>
+         <td><span class="badge ${w.severity}">${SEVTXT[w.severity]||w.severity}</span></td>
+         <td><div class="toggle ${w.enabled?'on':''}" data-i="${w.id}"></div></td>
+         <td class="op"><button class="btn sm" data-edit="${w.id}">编辑</button>
+           <button class="btn sm danger" data-del="${w.id}">删除</button></td>`;
+      tb.appendChild(tr);
+    });
+    $("#wordFoot").textContent = `共 ${rows.length} 条`;
 
-// ---------- 通用 ----------
-function closeMask(id) { document.getElementById(id).classList.remove('show'); }
-document.querySelectorAll('.mask').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); }));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.mask.show').forEach(m => m.classList.remove('show')); });
+    $$("#wordBody .toggle").forEach(t => t.onclick = () => {
+      const id = t.dataset.i;
+      const w = words.find(x => x.id === id); if (!w) return;
+      w.enabled = !w.enabled; t.classList.toggle("on", w.enabled);
+      post("toggleWord", { id, enabled: w.enabled });
+    });
+    $$("#wordBody [data-edit]").forEach(b => b.onclick = () => openModal(b.dataset.edit));
+    $$("#wordBody [data-del]").forEach(b => b.onclick = () => openDelConfirm([b.dataset.del]));
+    $$("#wordBody [data-cb]").forEach(c => {
+      const tog = () => {
+        const id = c.dataset.cb;
+        if (selWords.has(id)) selWords.delete(id); else selWords.add(id);
+        const on = selWords.has(id);
+        c.classList.toggle("on", on); c.setAttribute("aria-checked", on);
+        syncSelAll(); updateBulkbar();
+      };
+      c.onclick = tog;
+      c.onkeydown = e => { if (e.key === " " || e.key === "Enter"){ e.preventDefault(); tog(); } };
+    });
+    syncSelAll(); updateBulkbar();
+  }
 
-send('init');
+  function syncSelAll(){
+    const el = $("#selAll"); const total = curIds.length;
+    const all = total > 0 && curIds.every(id => selWords.has(id));
+    const some = curIds.some(id => selWords.has(id));
+    el.classList.toggle("on", all);
+    el.classList.toggle("mix", !all && some);
+    el.setAttribute("aria-checked", all ? "true" : (some ? "mixed" : "false"));
+  }
+  function toggleSelAll(){
+    const all = curIds.length > 0 && curIds.every(id => selWords.has(id));
+    if (all) curIds.forEach(id => selWords.delete(id)); else curIds.forEach(id => selWords.add(id));
+    $$("#wordBody [data-cb]").forEach(c => { const on = selWords.has(c.dataset.cb); c.classList.toggle("on", on); c.setAttribute("aria-checked", on); });
+    syncSelAll(); updateBulkbar();
+  }
+  $("#selAll").onclick = toggleSelAll;
+  $("#selAll").onkeydown = e => { if (e.key === " " || e.key === "Enter"){ e.preventDefault(); toggleSelAll(); } };
+
+  function updateBulkbar(){
+    const b = $("#bulkbar");
+    if (selWords.size === 0){ b.classList.remove("on"); return; }
+    b.classList.add("on");
+    $("#selCount").textContent = `已选 ${selWords.size} 项`;
+  }
+
+  $("#searchInput").oninput = renderWords;
+  $("#sevFilter").onchange = renderWords;
+
+  // ---------- 分类内联新增 ----------
+  $("#addCatBtn").onclick = () => {
+    if (document.getElementById("catInline")) return;
+    const wrap = document.createElement("div");
+    wrap.id = "catInline"; wrap.className = "cat-item";
+    wrap.style.background = "var(--blue-ll)"; wrap.style.boxShadow = "inset 3px 0 0 var(--blue)";
+    wrap.innerHTML = `<input id="catInput" placeholder="输入分类名，回车确认" style="border:0;background:transparent;padding:2px 0;font-size:13px;width:100%;outline:none;color:var(--text)">`;
+    $("#catList").appendChild(wrap);
+    const inp = wrap.querySelector("#catInput"); inp.focus();
+    let cancelled = false;
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Enter") inp.blur();
+      else if (e.key === "Escape"){ cancelled = true; wrap.remove(); }
+    });
+    inp.addEventListener("blur", () => {
+      if (cancelled) return;
+      const v = inp.value.trim(); wrap.remove();
+      if (v) post("addCategory", { name: v });
+    });
+  };
+
+  // ---------- 新增/编辑弹窗 ----------
+  function fillCatSelect(){
+    const s = $("#fCat");
+    const names = categories.map(c => c.name).filter(n => n && n !== "未分类");
+    s.innerHTML = (names.length ? names : ["未分类"]).map(n => `<option>${n}</option>`).join("");
+  }
+  function openModal(id){
+    editingId = id || null;
+    $("#modalTitle").textContent = editingId ? "编辑违禁词" : "新增违禁词";
+    const w = editingId ? words.find(x => x.id === editingId) : null;
+    $("#fWord").value = w ? w.text : "";
+    if (w) $("#fCat").value = w.category;
+    $("#fSev").value = w ? w.severity : "medium";
+    setToggle($("#fEnabled"), w ? w.enabled : true);
+    fillCatSelect();
+    if (w && $("#fCat").value !== w.category) { // 兜底：分类不在列表时补一项
+      const o = document.createElement("option"); o.textContent = w.category; $("#fCat").appendChild(o); $("#fCat").value = w.category;
+    }
+    $("#wordModal").classList.add("on");
+  }
+  function closeModal(){ $("#wordModal").classList.remove("on"); editingId = null; }
+  function setToggle(el, on){ el.classList.toggle("on", on); el.setAttribute("aria-checked", on); }
+  $("#fEnabled").onclick = () => setToggle($("#fEnabled"), !$("#fEnabled").classList.contains("on"));
+  $("#addWordBtn").onclick = () => openModal(null);
+  $("#modalClose").onclick = closeModal; $("#modalCancel").onclick = closeModal;
+  $("#wordModal").addEventListener("click", e => { if (e.target === $("#wordModal")) closeModal(); });
+  $("#modalSave").onclick = () => {
+    const text = $("#fWord").value.trim();
+    if (!text){ toast("请填写词语", true); return; }
+    post("saveWord", {
+      text,
+      category: $("#fCat").value,
+      severity: $("#fSev").value,
+      enabled: $("#fEnabled").classList.contains("on"),
+      ...(editingId ? { id: editingId } : {})
+    });
+    closeModal();
+  };
+
+  // ---------- 批量操作 ----------
+  $("#bulkEnable").onclick = () => { if (!selWords.size) return; post("bulkSetEnabled", { ids:[...selWords], enabled:true }); };
+  $("#bulkDisable").onclick = () => { if (!selWords.size) return; post("bulkSetEnabled", { ids:[...selWords], enabled:false }); };
+  $("#bulkDelete").onclick = () => { if (!selWords.size) return; openDelConfirm([...selWords]); };
+  $("#bulkClear").onclick = () => { selWords.clear(); renderWords(); };
+
+  // ---------- 删除确认（单选/批量共用） ----------
+  let pendingDel = [];
+  function openDelConfirm(ids){
+    pendingDel = ids.slice();
+    $("#delMsg").textContent = `确认删除选中的 ${pendingDel.length} 个违禁词？删除后不可恢复，客户端需重新导入词库才会同步。`;
+    $("#delModal").classList.add("on");
+  }
+  function closeDel(){ $("#delModal").classList.remove("on"); pendingDel = []; }
+  $("#delClose").onclick = closeDel; $("#delCancel").onclick = closeDel;
+  $("#delModal").addEventListener("click", e => { if (e.target === $("#delModal")) closeDel(); });
+  $("#delConfirm").onclick = () => { post("bulkDelete", { ids: pendingDel }); closeDel(); };
+
+  // ---------- 导出 ----------
+  $("#exportBtn").onclick = () => post("export");
+
+  // ---------- 工具 ----------
+  function escapeHtml(s){ return (s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c])); }
+
+  // 启动：向后端请求初始数据
+  post("init");
 </script>
 </body>
 </html>

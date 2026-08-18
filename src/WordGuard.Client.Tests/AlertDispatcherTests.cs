@@ -5,8 +5,8 @@ namespace WordGuard.Client.Tests;
 
 public class AlertDispatcherTests
 {
-    private static LibraryMetadata Meta(bool popup = true, bool sound = true, bool highlight = true)
-        => new() { AlertPopup = popup, AlertSound = sound, AlertHighlight = highlight };
+    private static LibraryMetadata Meta(bool popup = true, bool sound = true, bool highlight = true, bool voice = true)
+        => new() { AlertPopup = popup, AlertSound = sound, AlertHighlight = highlight, AlertVoice = voice };
 
     [Fact]
     public void Dispatch_with_alerting_word_and_all_channels_enabled_fires_all_channels()
@@ -84,7 +84,7 @@ public class AlertDispatcherTests
     [Fact]
     public void Dispatch_with_all_channels_off_still_records_match_but_fires_nothing()
     {
-        var dispatcher = new AlertDispatcher(Meta(popup: false, sound: false, highlight: false));
+        var dispatcher = new AlertDispatcher(Meta(popup: false, sound: false, highlight: false, voice: false));
 
         var result = new CaptureResult(true, new[]
         {
@@ -97,6 +97,38 @@ public class AlertDispatcherTests
         Assert.True(evt.HasAlert);
         Assert.Empty(evt.Channels);
         Assert.Contains("违禁词", evt.AlertWords);
+    }
+
+    [Fact]
+    public void Dispatch_includes_voice_channel_when_metadata_voice_enabled()
+    {
+        var dispatcher = new AlertDispatcher(Meta(voice: true));
+
+        var result = new CaptureResult(true, new[]
+        {
+            new TriggeredWord("违禁词", Severity.High, ShouldAlert: true, Array.Empty<(int, int)>()),
+        });
+
+        var evt = dispatcher.Dispatch(result);
+
+        Assert.True(evt.HasAlert);
+        Assert.Contains(AlertChannel.Voice, evt.Channels);
+    }
+
+    [Fact]
+    public void Dispatch_excludes_voice_channel_when_metadata_voice_disabled()
+    {
+        var dispatcher = new AlertDispatcher(Meta(voice: false));
+
+        var result = new CaptureResult(true, new[]
+        {
+            new TriggeredWord("违禁词", Severity.High, ShouldAlert: true, Array.Empty<(int, int)>()),
+        });
+
+        var evt = dispatcher.Dispatch(result);
+
+        Assert.True(evt.HasAlert);
+        Assert.DoesNotContain(AlertChannel.Voice, evt.Channels);
     }
 
     [Fact]

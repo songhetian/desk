@@ -2,66 +2,79 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<title>雷犀 · 告警</title>
 <style>
   :root{
-    --blue:#2563EB; --blue-d:#1E40AF; --blue-l:#EFF4FF;
-    --ink:#0F172A; --sub:#475569; --mut:#94A3B8;
-    --bg:#EEF2F7; --card:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
-    --hi:#DC2626; --hi-l:#FEF2F2; --mid:#D97706; --mid-l:#FFFBEB;
-    --lo:#2563EB; --lo-l:#EFF4FF; --ok:#059669;
-    --shadow:0 1px 2px rgba(15,23,42,.06),0 24px 60px rgba(15,23,42,.28);
+    --bg:#EEF2F7; --bg-2:#E7EDF5;
+    --surface:#FBFCFE; --surface-2:#F3F7FC; --surface-3:#EAF1FA;
+    --border:#D7E0EC; --border-strong:#C2CEDE;
+    --text:#16222E; --text-sub:#516275; --text-mute:#8593A4;
+    --blue:#2563EB; --blue-d:#1D4ED8; --blue-l:#E8F0FE; --blue-ll:#F2F7FF;
+    --ok:#15803D; --ok-l:#E6F4EA; --ok-b:#B7E0C2;
+    --warn:#B45309; --warn-l:#FBEFE0; --warn-b:#F0D3A8;
+    --danger:#DC2626; --danger-l:#FCE8E8; --danger-b:#F3B7B7;
+    --shadow:0 1px 2px rgba(20,40,70,.06), 0 4px 16px rgba(20,40,70,.08);
+    --shadow-lg:0 8px 40px rgba(20,40,70,.22);
+    --mono:"Cascadia Code","Cascadia Mono","SFMono-Regular",Menlo,"Consolas",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif;
+    --r:6px; --r-sm:4px;
   }
-  *{margin:0;padding:0;box-sizing:border-box}
-  html,body{width:100%;height:100%;background:transparent;overflow:hidden;
-    font-family:"Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;font-size:13.5px;
-    color:var(--ink);-webkit-font-smoothing:antialiased}
-  body{padding:8px}
-  .pop{width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;
-    box-shadow:var(--shadow);overflow:hidden;animation:pop .2s ease}
-  @keyframes pop{from{transform:scale(.96) translateY(6px);opacity:0}to{transform:none;opacity:1}}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;background:var(--surface);overflow:hidden}
+  body{font-family:var(--sans);color:var(--text);font-size:14px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;padding:8px}
+
+  .pop{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column;max-height:100%;
+    animation:pop .2s ease}
+  @keyframes pop{from{transform:scale(.97) translateY(8px);opacity:0}to{transform:none;opacity:1}}
   @media (prefers-reduced-motion: reduce){.pop{animation:none}}
 
-  .head{display:flex;gap:14px;padding:18px 20px 12px;align-items:flex-start}
-  .ic-badge{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
-  .ic-badge.hi{background:var(--hi-l);color:var(--hi)}
-  .ic-badge.mid{background:var(--mid-l);color:var(--mid)}
-  .ic-badge.lo{background:var(--lo-l);color:var(--lo)}
-  .ttl{font-size:16px;font-weight:600}
-  .sub{color:var(--mut);font-size:12.5px;margin-top:2px}
-  .count-pill{margin-left:8px;font-size:11px;font-weight:700;color:var(--hi);background:var(--hi-l);
-    padding:2px 8px;border-radius:20px;vertical-align:2px}
+  .head{display:flex;gap:13px;padding:16px 18px 13px;align-items:flex-start;border-bottom:1px solid var(--bg-2)}
+  .badge{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;flex:none}
+  .badge.hi{background:var(--danger-l);color:var(--danger)}
+  .badge.mid{background:var(--warn-l);color:var(--warn)}
+  .badge.lo{background:var(--blue-l);color:var(--blue-d)}
+  .titles{min-width:0;flex:1}
+  .ttl{font-size:15px;font-weight:600;letter-spacing:.01em}
+  .sub{font-size:12px;color:var(--text-mute);margin-top:2px}
+  .count-pill{margin-left:8px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--danger);
+    background:var(--danger-l);border:1px solid var(--danger-b);padding:1px 8px;border-radius:20px;vertical-align:1px}
 
-  .body{padding:0 20px 6px}
-  .wbox{background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:12px}
-  .wbox .lab{font-size:12px;color:var(--mut)}
-  .wbox .val{font-size:18px;font-weight:700;margin-top:2px;word-break:break-all}
-  .kv{display:flex;gap:10px;font-size:13px}
-  .kv>div{flex:1;min-width:0}
-  .kv .lab{color:var(--mut);font-size:12px}
-  .kv b{display:block;margin-top:1px;font-weight:600;word-break:break-all}
+  .body{padding:14px 18px 4px;overflow:auto}
+  .lab{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-sub)}
+  .wbox{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:12px}
+  .wbox .word{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:3px;word-break:break-all;color:var(--text)}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .kv .v{font-family:var(--mono);font-size:12.5px;font-weight:600;margin-top:3px;word-break:break-all;color:var(--text)}
 
-  .content{margin:12px 0 2px;border:1px solid var(--line);border-radius:10px;background:#F8FAFC;padding:0;overflow:hidden}
-  .content summary{cursor:pointer;padding:9px 13px;font-size:12.5px;color:var(--sub);font-weight:600;user-select:none;list-style:none}
-  .content summary::-webkit-details-marker{display:none}
-  .content summary::before{content:"▸ ";color:var(--mut)}
-  .content[open] summary::before{content:"▾ "}
-  .content .ct{padding:0 13px 11px;font-size:12.5px;line-height:1.65;max-height:110px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:var(--ink)}
-  mark{background:var(--hi-l);color:var(--hi);border-radius:3px;padding:0 2px;font-weight:700}
+  details.ct{margin:12px 0 2px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);overflow:hidden}
+  details.ct summary{cursor:pointer;padding:9px 13px;font-size:12.5px;color:var(--text-sub);font-weight:600;user-select:none;list-style:none}
+  details.ct summary::-webkit-details-marker{display:none}
+  details.ct summary::before{content:"▸ ";color:var(--text-mute)}
+  details.ct[open] summary::before{content:"▾ "}
+  details.ct .inner{padding:0 13px 12px;font-size:13px;line-height:1.65;max-height:120px;overflow:auto;
+    white-space:pre-wrap;word-break:break-all;color:var(--text)}
+  mark{background:var(--danger-l);color:var(--danger);border-radius:3px;padding:0 2px;font-weight:600}
 
-  .foot{padding:13px 20px 16px;display:flex;gap:9px;justify-content:flex-end;border-top:1px solid var(--line);background:#F8FAFC;margin-top:14px}
-  .btn{border:none;background:var(--blue);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
-  .btn:hover{background:var(--blue-d)}
-  .btn.sec{background:#fff;color:var(--sub);border:1px solid var(--line-d)}
-  .btn.sec:hover{border-color:var(--blue);color:var(--blue);background:#fff}
+  .foot{padding:13px 18px 15px;display:flex;gap:9px;justify-content:flex-end;border-top:1px solid var(--bg-2);background:var(--surface);margin-top:12px}
+  .btn{appearance:none;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);
+    padding:8px 14px;border-radius:var(--r-sm);font-size:13px;font-weight:500;cursor:pointer;
+    font-family:var(--sans);display:inline-flex;align-items:center;gap:6px;min-height:36px}
+  .btn:hover{background:var(--surface-2);border-color:#AEBECE}
+  .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .btn.primary{background:var(--blue);border-color:var(--blue-d);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.3)}
+  .btn.primary:hover{background:var(--blue-d)}
 </style>
 </head>
 <body>
-<div class="pop">
+<div class="pop" role="alertdialog" aria-modal="false" aria-labelledby="ttl">
   <div class="head">
-    <div class="ic-badge hi" id="badge">
+    <div class="badge hi" id="badge">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
     </div>
-    <div>
+    <div class="titles">
       <div class="ttl" id="ttl">违禁词命中提醒</div>
       <div class="sub" id="subLine">检测到禁止使用词汇，请立即纠正对话内容</div>
     </div>
@@ -70,28 +83,28 @@
   <div class="body">
     <div class="wbox">
       <div class="lab">命中词汇</div>
-      <div class="val" id="word">—</div>
+      <div class="word" id="word">—</div>
     </div>
     <div class="kv">
-      <div><div class="lab">来源窗口</div><b id="app">—</b></div>
-      <div><div class="lab">所属分类</div><b id="cat">—</b></div>
+      <div><div class="lab">来源窗口</div><div class="v" id="app">—</div></div>
+      <div><div class="lab">所属分类</div><div class="v" id="cat">—</div></div>
     </div>
 
-    <details class="content" id="contentBox">
+    <details class="ct" id="contentBox">
       <summary>查看触发内容（命中词已标红）</summary>
-      <div class="ct" id="content"></div>
+      <div class="inner" id="content"></div>
     </details>
   </div>
 
   <div class="foot">
-    <button class="btn sec" id="btnIgnore">忽略本次</button>
-    <button class="btn sec" id="btnDetails">查看详情</button>
-    <button class="btn" id="btnAck">已知悉</button>
+    <button class="btn" id="btnIgnore">忽略本次</button>
+    <button class="btn" id="btnDetails">查看详情</button>
+    <button class="btn primary" id="btnAck">已知悉</button>
   </div>
 </div>
 
 <script>
-  const send = obj => window.chrome.webview.postMessage(JSON.stringify(obj));
+  const send = obj => window.chrome.webview.postMessage(obj);
   const $ = id => document.getElementById(id);
   const esc = s => (s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -103,7 +116,7 @@
   function render(m) {
     const sev = m.severity || 'hi';
     const badge = $('badge');
-    badge.className = 'ic-badge ' + sev;
+    badge.className = 'badge ' + sev;
     badge.innerHTML = sev === 'hi'
       ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'
       : sev === 'mid'
@@ -112,17 +125,22 @@
 
     $('ttl').textContent = sev === 'hi' ? '高危违禁词命中' : sev === 'mid' ? '违禁词命中提醒' : '低危词汇提示';
     $('word').textContent = m.word || '—';
-    if ((m.words||[]).length > 1) $('word').insertAdjacentHTML('afterend', '<span class="count-pill">共 ' + m.words.length + ' 个</span>');
+    if ((m.words || []).length > 1) {
+      const pill = document.createElement('span');
+      pill.className = 'count-pill';
+      pill.textContent = '共 ' + m.words.length + ' 个';
+      $('word').after(pill);
+    }
     $('app').textContent = [m.target, m.windowTitle].filter(Boolean).join(' · ') || '—';
     $('cat').textContent = m.category || '未分类';
 
     const ct = $('content');
-    const words = (m.words||[]).filter(Boolean);
+    const words = (m.words || []).filter(Boolean);
     let html = esc(m.content || '');
     if (html) {
       for (const w of words) {
         const re = new RegExp(esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        html = html.replace(re, m => '<mark>' + m + '</mark>');
+        html = html.replace(re, x => '<mark>' + x + '</mark>');
       }
     }
     ct.innerHTML = html || '（无内容文本）';
@@ -134,7 +152,7 @@
   $('btnDetails').addEventListener('click', () => send({type:'popupAction', action:'details'}));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') send({type:'popupAction', action:'ignore'}); });
 
-  window.chrome.webview.postMessage(JSON.stringify({type:'ready'}));
+  send({type:'ready'});
 </script>
 </body>
 </html>
